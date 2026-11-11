@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "616416139930",
+    "project_id": "argus-d5594",
+    "storage_bucket": "argus-d5594.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616416139930:android:33268ecc5384e77bbddd23",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "616416139930-cc1rinp8o6ickd5irrn2op2qvj4me3v6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6nr6HkVmA6AXijxPSwoZxiYlaRYkXgZM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "616416139930-cc1rinp8o6ickd5irrn2op2qvj4me3v6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
