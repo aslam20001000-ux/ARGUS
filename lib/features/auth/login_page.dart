@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../core/app_state.dart';
 import '../../core/auth_service.dart';
 import '../../core/settings_store.dart';
-import '../../core/page_route.dart';
 import '../../core/widgets/animated_action_button.dart';
 import '../../core/widgets/argus_eye.dart';
 import 'session.dart';
@@ -29,6 +28,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   /// True while waiting for the server to answer.
   bool _signingIn = false;
+
+  /// Selected tab: 0 = Sign in, 1 = Sign up.
+  int _tab = 0;
 
   late final AnimationController _entryController;
   late final AnimationController _pulseController;
@@ -76,7 +78,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ? 'الإيميل أو كلمة المرور غير صحيحة'
           : 'Incorrect email or password',
     AuthError.invalidEmail =>
-      arabic ? 'مسموح فقط بإيميلات @gmail.com' : 'Only @gmail.com emails are allowed',
+      arabic
+          ? 'مسموح فقط بإيميلات @gmail.com'
+          : 'Only @gmail.com emails are allowed',
     AuthError.emailInUse =>
       arabic ? 'الإيميل مستخدم بالفعل' : 'This email is already in use',
     AuthError.weakPassword =>
@@ -107,7 +111,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   Future<void> _forgotPassword() async {
     final arabic = isArabic.value;
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController(text: _emailController.text.trim());
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     final email = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -253,7 +259,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             body: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 760;
+                  // Phone < 600 <= tablet portrait < 980 <= landscape/desktop.
+                  final isWide = constraints.maxWidth >= 600;
+                  final isSplit = constraints.maxWidth >= 980;
 
                   return Stack(
                     children: [
@@ -278,14 +286,27 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             opacity: _fadeAnimation,
                             child: SlideTransition(
                               position: _slideAnimation,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 1080,
-                                ),
-                                child: isWide
-                                    ? _buildWideLogin(arabic, textDirection)
-                                    : _buildCompactLogin(arabic, textDirection),
-                              ),
+                              child: isSplit
+                                  ? _buildSplitLayout(arabic, textDirection)
+                                  : ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth: isWide ? 520 : 470,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          _buildBrandHeader(
+                                            arabic,
+                                            large: isWide,
+                                          ),
+                                          if (isWide) ...[
+                                            const SizedBox(height: 22),
+                                            _buildFeatureBadges(arabic),
+                                          ],
+                                          SizedBox(height: isWide ? 34 : 28),
+                                          _buildAuthCard(arabic, textDirection),
+                                        ],
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
@@ -297,10 +318,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         left: arabic ? 18 : null,
                         child: _LanguageButton(
                           arabic: arabic,
-                          onTap: () => SettingsStore.instance.setArabic(!isArabic.value),
+                          onTap: () =>
+                              SettingsStore.instance.setArabic(!isArabic.value),
                         ),
                       ),
-
                     ],
                   );
                 },
@@ -312,43 +333,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildWideLogin(bool arabic, TextDirection textDirection) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 11,
-          child: Padding(
-            padding: const EdgeInsetsDirectional.only(end: 34),
-            child: _buildWelcomePanel(arabic),
-          ),
-        ),
-        Expanded(flex: 9, child: _buildLoginCard(arabic, textDirection)),
-      ],
-    );
-  }
-
-  Widget _buildCompactLogin(bool arabic, TextDirection textDirection) {
+  Widget _buildBrandHeader(bool arabic, {bool large = false}) {
     return Column(
       children: [
-        _buildBrandHeader(arabic),
-        const SizedBox(height: 26),
-        _buildLoginCard(arabic, textDirection),
-      ],
-    );
-  }
-
-  Widget _buildBrandHeader(bool arabic) {
-    return Column(
-      children: [
-        _buildMedicalLogo(size: 92),
-        const SizedBox(height: 18),
+        _buildMedicalLogo(size: large ? 108 : 92),
+        SizedBox(height: large ? 22 : 18),
         Text(
           'ARGUS',
           style: TextStyle(
             color: AppColors.text.withValues(alpha: 0.94),
-            fontSize: 22,
+            fontSize: large ? 26 : 22,
             fontWeight: FontWeight.w800,
-            letterSpacing: 3,
+            letterSpacing: large ? 4 : 3,
           ),
         ),
         const SizedBox(height: 7),
@@ -359,82 +355,183 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: AppColors.text.withValues(alpha: 0.52),
-            fontSize: 13,
+            fontSize: large ? 14.5 : 13,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildWelcomePanel(bool arabic) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// (icon, English, Arabic) for the three headline features.
+  static const _features = [
+    (Icons.favorite_rounded, 'Real-time vital signs', 'علامات حيوية لحظية'),
+    (
+      Icons.monitor_heart_rounded,
+      'ECG & patient monitoring',
+      'رسم القلب ومتابعة المريض',
+    ),
+    (
+      Icons.water_drop_rounded,
+      'Smart bladder monitoring',
+      'مراقبة ذكية للمثانة',
+    ),
+  ];
+
+  /// Small pills under the logo on tablets in portrait.
+  Widget _buildFeatureBadges(bool arabic) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        _buildMedicalLogo(size: 94),
-        const SizedBox(height: 28),
-        Text(
-          arabic ? 'مراقبة. دقة. أمان.' : 'MONITOR. PRECISION. CARE.',
-          style:  TextStyle(
-            color: AppColors.text,
-            fontSize: 34,
-            height: 1.08,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          arabic
-              ? 'منصة طبية حديثة لمتابعة العلامات الحيوية والبيانات الفسيولوجية في الوقت الحقيقي.'
-              : 'A modern medical platform for real-time monitoring of vital signs and physiological data.',
-          style: TextStyle(
-            color: AppColors.text.withValues(alpha: 0.60),
-            fontSize: 15,
-            height: 1.7,
-          ),
-        ),
-        const SizedBox(height: 30),
-        _buildFeatureChip(
-          Icons.favorite_rounded,
-          arabic ? 'Real-time Vital Signs' : 'Real-time Vital Signs',
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureChip(
-          Icons.monitor_heart_rounded,
-          arabic ? 'ECG & Patient Monitoring' : 'ECG & Patient Monitoring',
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureChip(
-          Icons.water_drop_rounded,
-          arabic ? 'Smart Bladder Monitoring' : 'Smart Bladder Monitoring',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeatureChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xFF54A9FF).withValues(alpha: 0.12),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF38E08F), size: 20),
-          const SizedBox(width: 11),
-          Text(
-            text,
-            style:  TextStyle(
-              color: AppColors.text,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+        for (final (icon, en, ar) in _features)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            decoration: BoxDecoration(
+              color: AppColors.card.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: const Color(0xFF54A9FF).withValues(alpha: 0.14),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: const Color(0xFF38E08F), size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  arabic ? ar : en,
+                  style: TextStyle(
+                    color: AppColors.text.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
             ),
           ),
+      ],
+    );
+  }
+
+  /// Landscape tablets and desktops: brand panel on one side, the
+  /// Sign in / Sign up card on the other.
+  Widget _buildSplitLayout(bool arabic, TextDirection textDirection) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1100),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: _buildHeroPanel(arabic)),
+          const SizedBox(width: 48),
+          SizedBox(width: 450, child: _buildAuthCard(arabic, textDirection)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroPanel(bool arabic) {
+    const blue = Color(0xFF54A9FF);
+    const green = Color(0xFF38E08F);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(40, 44, 40, 40),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [
+            blue.withValues(alpha: 0.16),
+            AppColors.card.withValues(alpha: 0.55),
+            green.withValues(alpha: 0.07),
+          ],
+        ),
+        border: Border.all(color: blue.withValues(alpha: 0.14)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildMedicalLogo(size: 84),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ARGUS',
+                      style: TextStyle(
+                        color: AppColors.text.withValues(alpha: 0.94),
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      arabic
+                          ? 'نظام مراقبة ذكي للعلامات الحيوية'
+                          : 'Smart physiological monitoring system',
+                      style: TextStyle(
+                        color: AppColors.text.withValues(alpha: 0.55),
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          Text(
+            arabic ? 'مراقبة. دقة. أمان.' : 'Monitor. Precision. Care.',
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 38,
+              height: 1.1,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            arabic
+                ? 'منصة طبية حديثة لمتابعة العلامات الحيوية والبيانات الفسيولوجية في الوقت الحقيقي.'
+                : 'A modern medical platform for real-time monitoring of vital signs and physiological data.',
+            style: TextStyle(
+              color: AppColors.text.withValues(alpha: 0.6),
+              fontSize: 15.5,
+              height: 1.65,
+            ),
+          ),
+          const SizedBox(height: 34),
+          for (final (icon, en, ar) in _features) ...[
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(icon, color: green, size: 21),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    arabic ? ar : en,
+                    style: TextStyle(
+                      color: AppColors.text.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
         ],
       ),
     );
@@ -475,9 +572,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildLoginCard(bool arabic, TextDirection textDirection) {
+  /// The card under the logo: a Sign in / Sign up switcher on top and the
+  /// matching form below it. Both forms stay alive, so text typed in one tab
+  /// is still there after visiting the other.
+  Widget _buildAuthCard(bool arabic, TextDirection textDirection) {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
       decoration: BoxDecoration(
         color: AppColors.card.withValues(alpha: 0.91),
         borderRadius: BorderRadius.circular(28),
@@ -492,248 +592,326 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ),
         ],
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTabSwitcher(arabic),
+          const SizedBox(height: 26),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF54A9FF).withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.lock_open_rounded,
-                    color: Color(0xFF54A9FF),
-                    size: 22,
-                  ),
+                Visibility(
+                  visible: _tab == 0,
+                  maintainState: true,
+                  child: _buildLoginForm(arabic, textDirection),
                 ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        arabic ? 'مرحباً بعودتك' : 'Welcome back',
-                        style:  TextStyle(
-                          color: AppColors.text,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        arabic
-                            ? 'سجّل الدخول للوصول إلى لوحة المراقبة'
-                            : 'Sign in to access your monitoring dashboard',
-                        style: TextStyle(
-                          color: AppColors.text.withValues(alpha: 0.48),
-                          fontSize: 11.5,
-                        ),
+                Visibility(
+                  visible: _tab == 1,
+                  maintainState: true,
+                  child: const SignupForm(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF38E08F),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                arabic ? 'النظام جاهز للعمل' : 'System ready for operation',
+                style: TextStyle(
+                  color: AppColors.text.withValues(alpha: 0.42),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Segmented "Sign in | Sign up" control with a sliding highlight.
+  Widget _buildTabSwitcher(bool arabic) {
+    Widget tab(int index, String label, IconData icon) {
+      final selected = _tab == index;
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: _signingIn || selected
+              ? null
+              : () => setState(() {
+                  _tab = index;
+                  _authError = null;
+                }),
+          child: SizedBox(
+            height: 46,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected
+                      ? Colors.white
+                      : AppColors.text.withValues(alpha: 0.55),
+                ),
+                const SizedBox(width: 8),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 220),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: selected
+                        ? Colors.white
+                        : AppColors.text.withValues(alpha: 0.55),
+                  ),
+                  child: Text(label),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: AppColors.bg.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.text.withValues(alpha: 0.06)),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              alignment: _tab == 0
+                  ? AlignmentDirectional.centerStart
+                  : AlignmentDirectional.centerEnd,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF54A9FF), Color(0xFF3D8BE0)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF54A9FF).withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            TextFormField(
-              controller: _emailController,
-              textDirection: textDirection,
-              textInputAction: TextInputAction.next,
-              keyboardType: TextInputType.emailAddress,
-              decoration: _fieldDecoration(
-                label: arabic ? 'الإيميل' : 'Email',
-                icon: Icons.email_outlined,
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return arabic
-                      ? 'من فضلك أدخل الإيميل'
-                      : 'Please enter your email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 15),
-            TextFormField(
-              controller: _passwordController,
-              obscureText: true,
-              textDirection: textDirection,
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _login(),
-              decoration: _fieldDecoration(
-                label: arabic ? 'كلمة المرور' : 'Password',
-                icon: Icons.lock_outline_rounded,
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return arabic
-                      ? 'من فضلك أدخل كلمة المرور'
-                      : 'Please enter your password';
-                }
-                return null;
-              },
-            ),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
-                onPressed: _signingIn ? null : _forgotPassword,
-                child: Text(
-                  arabic ? 'نسيت كلمة المرور؟' : 'Forgot password?',
-                  style: const TextStyle(color: Color(0xFF54A9FF)),
-                ),
               ),
             ),
-            if (_authError != null) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE65F72).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFFE65F72).withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      color: Color(0xFFE65F72),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _errorText(_authError!, arabic),
-                        style: const TextStyle(
-                          color: Color(0xFFE65F72),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          ),
+          Row(
+            children: [
+              tab(0, arabic ? 'تسجيل الدخول' : 'Sign in', Icons.login_rounded),
+              tab(
+                1,
+                arabic ? 'حساب جديد' : 'Sign up',
+                Icons.person_add_alt_1_rounded,
               ),
             ],
-            const SizedBox(height: 22),
-            AnimatedActionButton(
-              onPressed: _signingIn ? null : _login,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 17),
-                backgroundColor: const Color(0xFF54A9FF),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: _signingIn
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          arabic ? 'دخول إلى النظام' : 'Enter Monitor',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Icon(
-                          arabic
-                              ? Icons.arrow_back_rounded
-                              : Icons.arrow_forward_rounded,
-                          size: 20,
-                        ),
-                      ],
-                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginForm(bool arabic, TextDirection textDirection) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            arabic ? 'مرحباً بعودتك' : 'Welcome back',
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 23,
+              fontWeight: FontWeight.w800,
             ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: _signingIn ? null : _google,
-              icon: const Text(
-                'G',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF54A9FF),
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                foregroundColor: AppColors.text,
-                side: BorderSide(color: AppColors.text.withValues(alpha: 0.25)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              label: Text(
-                arabic ? 'المتابعة بحساب جوجل' : 'Continue with Google',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            arabic
+                ? 'سجّل الدخول للوصول إلى لوحة المراقبة'
+                : 'Sign in to access your monitoring dashboard',
+            style: TextStyle(
+              color: AppColors.text.withValues(alpha: 0.5),
+              fontSize: 12,
             ),
-            const SizedBox(height: 14),
-            OutlinedButton(
-              onPressed: _signingIn
-                  ? null
-                  : () => Navigator.push(context, appRoute<void>(const SignupPage())),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                foregroundColor: const Color(0xFF38E08F),
-                side: BorderSide(
-                  color: const Color(0xFF38E08F).withValues(alpha: 0.5),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
+          ),
+          const SizedBox(height: 24),
+          TextFormField(
+            controller: _emailController,
+            textDirection: textDirection,
+            textInputAction: TextInputAction.next,
+            keyboardType: TextInputType.emailAddress,
+            decoration: _fieldDecoration(
+              label: arabic ? 'الإيميل' : 'Email',
+              icon: Icons.email_outlined,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return arabic
+                    ? 'من فضلك أدخل الإيميل'
+                    : 'Please enter your email';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: true,
+            textDirection: textDirection,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _login(),
+            decoration: _fieldDecoration(
+              label: arabic ? 'كلمة المرور' : 'Password',
+              icon: Icons.lock_outline_rounded,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return arabic
+                    ? 'من فضلك أدخل كلمة المرور'
+                    : 'Please enter your password';
+              }
+              return null;
+            },
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton(
+              onPressed: _signingIn ? null : _forgotPassword,
               child: Text(
-                arabic ? 'إنشاء حساب جديد' : 'Create new account',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                arabic ? 'نسيت كلمة المرور؟' : 'Forgot password?',
+                style: const TextStyle(color: Color(0xFF54A9FF)),
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF38E08F),
-                    shape: BoxShape.circle,
-                  ),
+          ),
+          if (_authError != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE65F72).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFE65F72).withValues(alpha: 0.4),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  arabic ? 'النظام جاهز للعمل' : 'System ready for operation',
-                  style: TextStyle(
-                    color: AppColors.text.withValues(alpha: 0.42),
-                    fontSize: 11,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xFFE65F72),
+                    size: 20,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _errorText(_authError!, arabic),
+                      style: const TextStyle(
+                        color: Color(0xFFE65F72),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-        ),
+          const SizedBox(height: 22),
+          AnimatedActionButton(
+            onPressed: _signingIn ? null : _login,
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 17),
+              backgroundColor: const Color(0xFF54A9FF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: _signingIn
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        arabic ? 'دخول إلى النظام' : 'Enter Monitor',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(
+                        arabic
+                            ? Icons.arrow_back_rounded
+                            : Icons.arrow_forward_rounded,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _signingIn ? null : _google,
+            icon: const Text(
+              'G',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF54A9FF),
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              foregroundColor: AppColors.text,
+              side: BorderSide(color: AppColors.text.withValues(alpha: 0.25)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            label: Text(
+              arabic ? 'المتابعة بحساب جوجل' : 'Continue with Google',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -772,7 +950,7 @@ class _LanguageButton extends StatelessWidget {
               const SizedBox(width: 7),
               Text(
                 arabic ? 'EN' : 'ع',
-                style:  TextStyle(
+                style: TextStyle(
                   color: AppColors.text,
                   fontWeight: FontWeight.w800,
                   fontSize: 13,

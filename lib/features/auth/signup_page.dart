@@ -8,16 +8,74 @@ import '../../core/widgets/argus_eye.dart';
 import 'session.dart';
 import '../../core/app_colors.dart';
 
-/// Create-account flow (like Facebook): step 1 = name + birth date,
-/// step 2 = email + password.
-class SignupPage extends StatefulWidget {
+/// Stand-alone create-account screen (the login page embeds [SignupForm]
+/// directly in its "Sign up" tab).
+class SignupPage extends StatelessWidget {
   const SignupPage({super.key});
 
   @override
-  State<SignupPage> createState() => _SignupPageState();
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isArabic,
+      builder: (context, ar, _) {
+        return Directionality(
+          textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: AppColors.bg,
+            appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+            body: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          height: 44,
+                          child: CustomPaint(
+                            painter: ArgusEyePainter(pulse: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.all(26),
+                          decoration: BoxDecoration(
+                            color: AppColors.card.withValues(alpha: 0.91),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF54A9FF,
+                              ).withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: const SignupForm(),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _SignupPageState extends State<SignupPage> {
+/// Create-account flow (like Facebook): step 1 = name + birth date,
+/// step 2 = email + password.
+class SignupForm extends StatefulWidget {
+  const SignupForm({super.key});
+
+  @override
+  State<SignupForm> createState() => _SignupFormState();
+}
+
+class _SignupFormState extends State<SignupForm> {
   static const _minAge = 13;
 
   final _step1Key = GlobalKey<FormState>();
@@ -117,10 +175,13 @@ class _SignupPageState extends State<SignupPage> {
     AuthError.emailInUse =>
       ar ? 'الإيميل مستخدم بالفعل' : 'This email is already in use',
     AuthError.invalidEmail =>
-      ar ? 'مسموح فقط بإيميلات @gmail.com' : 'Only @gmail.com emails are allowed',
+      ar
+          ? 'مسموح فقط بإيميلات @gmail.com'
+          : 'Only @gmail.com emails are allowed',
     AuthError.weakPassword =>
       ar ? 'كلمة المرور ضعيفة (6 أحرف على الأقل)' : 'Password is too weak',
-    AuthError.network => ar ? 'لا يوجد اتصال بالإنترنت' : 'No internet connection',
+    AuthError.network =>
+      ar ? 'لا يوجد اتصال بالإنترنت' : 'No internet connection',
     AuthError.tooManyRequests =>
       ar ? 'محاولات كثيرة، حاول بعد قليل' : 'Too many attempts. Try later',
     _ => ar ? 'حدث خطأ، حاول مرة أخرى' : 'Something went wrong. Try again',
@@ -149,69 +210,42 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: isArabic,
-      builder: (context, ar, _) {
-        return Directionality(
-          textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
-          child: Scaffold(
-            backgroundColor: AppColors.bg,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: _busy
-                    ? null
-                    : () => _step == 1
-                          ? setState(() => _step = 0)
-                          : Navigator.pop(context),
-              ),
-            ),
-            body: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 460),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 70,
-                          height: 44,
-                          child: CustomPaint(
-                            painter: ArgusEyePainter(pulse: 0.5),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          padding: const EdgeInsets.all(26),
-                          decoration: BoxDecoration(
-                            color: AppColors.card.withValues(alpha: 0.91),
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(
-                              color: const Color(0xFF54A9FF).withValues(alpha: 0.16),
-                            ),
-                          ),
-                          child: _step == 0 ? _stepOne(ar) : _stepTwo(ar),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (context, ar, _) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        child: _step == 0
+            ? KeyedSubtree(key: const ValueKey(0), child: _stepOne(ar))
+            : KeyedSubtree(key: const ValueKey(1), child: _stepTwo(ar)),
+      ),
     );
   }
+
+  /// Two small bars showing which of the two steps is active.
+  Widget _stepIndicator() => Row(
+    children: [
+      for (var i = 0; i < 2; i++) ...[
+        if (i > 0) const SizedBox(width: 6),
+        Expanded(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            height: 4,
+            decoration: BoxDecoration(
+              color: i <= _step
+                  ? const Color(0xFF54A9FF)
+                  : AppColors.text.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
 
   Widget _title(String t, String sub) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         t,
-        style:  TextStyle(
+        style: TextStyle(
           color: AppColors.text,
           fontSize: 23,
           fontWeight: FontWeight.w800,
@@ -220,7 +254,10 @@ class _SignupPageState extends State<SignupPage> {
       const SizedBox(height: 4),
       Text(
         sub,
-        style: TextStyle(color: AppColors.text.withValues(alpha: 0.5), fontSize: 12),
+        style: TextStyle(
+          color: AppColors.text.withValues(alpha: 0.5),
+          fontSize: 12,
+        ),
       ),
       const SizedBox(height: 24),
     ],
@@ -239,9 +276,15 @@ class _SignupPageState extends State<SignupPage> {
         ? const SizedBox(
             height: 22,
             width: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+            child: CircularProgressIndicator(
+              strokeWidth: 2.4,
+              color: Colors.white,
+            ),
           )
-        : Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        : Text(
+            text,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
   );
 
   Widget _stepOne(bool ar) {
@@ -255,15 +298,22 @@ class _SignupPageState extends State<SignupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _stepIndicator(),
+          const SizedBox(height: 20),
           _title(
             ar ? 'إنشاء حساب' : 'Create account',
-            ar ? 'الخطوة 1 من 2 — اسمك وسنك' : 'Step 1 of 2 — your name and age',
+            ar
+                ? 'الخطوة 1 من 2 — اسمك وسنك'
+                : 'Step 1 of 2 — your name and age',
           ),
           TextFormField(
             controller: _nameController,
             textInputAction: TextInputAction.next,
             textCapitalization: TextCapitalization.words,
-            decoration: _dec(ar ? 'الاسم' : 'Full name', Icons.person_outline_rounded),
+            decoration: _dec(
+              ar ? 'الاسم' : 'Full name',
+              Icons.person_outline_rounded,
+            ),
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? (ar ? 'من فضلك أدخل اسمك' : 'Please enter your name')
                 : null,
@@ -273,22 +323,27 @@ class _SignupPageState extends State<SignupPage> {
             onTap: _pickBirthDate,
             borderRadius: BorderRadius.circular(16),
             child: InputDecorator(
-              decoration: _dec(
-                ar ? 'تاريخ الميلاد' : 'Date of birth',
-                Icons.cake_outlined,
-              ).copyWith(
-                errorText: _birthError
-                    ? (b == null
-                          ? (ar ? 'اختر تاريخ ميلادك' : 'Choose your birth date')
-                          : (ar
-                                ? 'لازم السن يكون $_minAge سنة أو أكتر'
-                                : 'You must be at least $_minAge'))
-                    : null,
-              ),
+              decoration:
+                  _dec(
+                    ar ? 'تاريخ الميلاد' : 'Date of birth',
+                    Icons.cake_outlined,
+                  ).copyWith(
+                    errorText: _birthError
+                        ? (b == null
+                              ? (ar
+                                    ? 'اختر تاريخ ميلادك'
+                                    : 'Choose your birth date')
+                              : (ar
+                                    ? 'لازم السن يكون $_minAge سنة أو أكتر'
+                                    : 'You must be at least $_minAge'))
+                        : null,
+                  ),
               child: Text(
                 dateText,
                 style: TextStyle(
-                  color: b == null ? AppColors.text.withValues(alpha: .54) : AppColors.text,
+                  color: b == null
+                      ? AppColors.text.withValues(alpha: .54)
+                      : AppColors.text,
                   fontSize: 15,
                 ),
               ),
@@ -307,6 +362,8 @@ class _SignupPageState extends State<SignupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _stepIndicator(),
+          const SizedBox(height: 20),
           _title(
             ar ? 'الإيميل وكلمة المرور' : 'Email and password',
             ar ? 'الخطوة 2 من 2' : 'Step 2 of 2',
@@ -375,6 +432,18 @@ class _SignupPageState extends State<SignupPage> {
           ],
           const SizedBox(height: 24),
           _button(ar ? 'إنشاء الحساب' : 'Create account', _create),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _busy ? null : () => setState(() => _step = 0),
+            icon: Icon(
+              ar ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
+              size: 18,
+            ),
+            label: Text(ar ? 'رجوع' : 'Back'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.text.withValues(alpha: 0.6),
+            ),
+          ),
         ],
       ),
     );
