@@ -77,8 +77,8 @@ class FeatureSelectionPage extends StatelessWidget {
     color: _blue,
     title: tr('Medical Monitor', 'مراقبة المريض'),
     subtitle: tr(
-      'Live vital signs, ECG, SpO₂ and alarms',
-      'العلامات الحيوية وتخطيط القلب والأكسجين والتنبيهات',
+      'Vitals, ECG, SpO₂ & alarms',
+      'العلامات الحيوية والقلب والتنبيهات',
     ),
     onTap: () => _open(context, const MonitorHome()),
   );
@@ -157,8 +157,8 @@ class FeatureSelectionPage extends StatelessWidget {
           color: _blue,
           title: tr('Medical Monitor', 'مراقبة المريض'),
           subtitle: tr(
-            'Live vital signs, ECG, SpO₂ and alarms',
-            'العلامات الحيوية وتخطيط القلب والأكسجين والتنبيهات',
+            'Vitals, ECG, SpO₂ & alarms',
+            'العلامات الحيوية والقلب والتنبيهات',
           ),
           onTap: () => _open(context, const MonitorHome()),
         ),
@@ -416,10 +416,12 @@ class FeatureSelectionPage extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.text.withValues(alpha: .54),
-                        fontSize: 12.5,
-                        height: 1.35,
+                        fontSize: 12,
+                        height: 1.3,
                       ),
                     ),
                   ],
@@ -482,6 +484,8 @@ class FeatureSelectionPage extends StatelessWidget {
               SizedBox(height: compact ? 12 : 16),
               Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -490,10 +494,12 @@ class FeatureSelectionPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: AppColors.text.withValues(alpha: .54),
-                  fontSize: 12,
-                  height: 1.35,
+                  fontSize: 11.5,
+                  height: 1.3,
                 ),
               ),
             ],
