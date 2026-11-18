@@ -16,10 +16,10 @@ enum AuthError {
 
 /// Login through Firebase Authentication (email + password).
 ///
-/// People sign in with their email and password, and can create their own
-/// account from the app (name, birth date, email, password). A plain word
-/// without "@" is still accepted and becomes "word@argus.app" (old accounts).
-/// The person's name is saved in the account's display name.
+/// People sign in with their Gmail address and password (or Google), and can
+/// create their own account from the app (name, birth date, email,
+/// password). Each account is one person. The person's name is saved in the
+/// account's display name.
 class AuthService {
   AuthService._();
 

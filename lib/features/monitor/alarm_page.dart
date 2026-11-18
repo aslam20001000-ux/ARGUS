@@ -132,7 +132,8 @@ class AlarmPage extends StatelessWidget {
 
   Widget _statusBanner(AlarmService service) {
     final active = service.activeParams;
-    final ok = active.isEmpty;
+    final count = service.activeCount; // includes "device disconnected"
+    final ok = count == 0;
     final color = ok ? _green : _red;
 
     return Container(
@@ -158,7 +159,7 @@ class AlarmPage extends StatelessWidget {
                 Text(
                   ok
                       ? 'System Normal'
-                      : '${active.length} active alarm${active.length == 1 ? '' : 's'}',
+                      : '$count active alarm${count == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -168,7 +169,10 @@ class AlarmPage extends StatelessWidget {
                 Text(
                   ok
                       ? 'No active alarms'
-                      : active.map(AlarmService.labelOf).join('  •  '),
+                      : [
+                          if (service.deviceLost) 'Device disconnected',
+                          ...active.map(AlarmService.labelOf),
+                        ].join('  •  '),
                   style:  TextStyle(color: AppColors.text.withValues(alpha: .6), fontSize: 13),
                 ),
               ],
@@ -434,12 +438,10 @@ class _LimitsDialogState extends State<_LimitsDialog> {
       low = SettingsStore.instance.fromDisplayTemp(shownLow);
       high = SettingsStore.instance.fromDisplayTemp(shownHigh);
     }
-    if (low >= high) {
-      setState(() => _error = 'Low limit must be below high limit');
-      return;
-    }
-    if (_onlyHigh && high > 100) {
-      setState(() => _error = 'High limit cannot be above 100 %');
+    // Refuse limits that would silently switch the alarm off.
+    final problem = AlarmService.checkLimits(widget.param, low, high);
+    if (problem != null) {
+      setState(() => _error = problem);
       return;
     }
 

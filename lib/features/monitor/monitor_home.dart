@@ -26,10 +26,11 @@ class _MonitorHomeState extends State<MonitorHome> {
 
   final VitalsStore store = VitalsStore.instance;
 
-  int get heartRate => store.vitals.value.hr;
-  int get spo2 => store.vitals.value.spo2;
-  int get respiratoryRate => store.vitals.value.rr;
-  double get temperature => store.vitals.value.temp;
+  // null = no reading (shown as "--").
+  int? get heartRate => store.vitals.value.hr;
+  int? get spo2 => store.vitals.value.spo2;
+  int? get respiratoryRate => store.vitals.value.rr;
+  double? get temperature => store.vitals.value.temp;
 
   @override
   void initState() {

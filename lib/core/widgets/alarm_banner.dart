@@ -8,6 +8,8 @@ import '../device_service.dart';
 class AlarmBanner extends StatelessWidget {
   const AlarmBanner({super.key});
 
+  static const _red = Color(0xFFE65F72);
+
   @override
   Widget build(BuildContext context) {
     final service = AlarmService.instance;
@@ -16,16 +18,20 @@ class AlarmBanner extends StatelessWidget {
       listenable: service,
       builder: (context, _) {
         final active = service.activeParams;
-        if (active.isEmpty || service.silenced) {
+        if (service.activeCount == 0 || service.silenced) {
           return const SizedBox.shrink();
         }
+        final lines = [
+          if (service.deviceLost) AlarmService.deviceLostText,
+          ...active.map(service.summaryOf),
+        ];
 
         return SafeArea(
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: Material(
-              color: const Color(0xFFB3263E),
+              color: _red,
               elevation: 8,
               borderRadius: BorderRadius.circular(16),
               child: Padding(
@@ -53,7 +59,7 @@ class AlarmBanner extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            active.map(service.summaryOf).join('\n'),
+                            lines.join('\n'),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -87,8 +93,8 @@ class AlarmBanner extends StatelessWidget {
 
 
 /// Strip at the bottom of every page while the ESP32 connection is lost.
-/// Readings are never invented: the last values stay on screen until the
-/// connection comes back.
+/// Readings are never invented: the screen shows "--" until the connection
+/// comes back (the red alarm banner and sound are handled by AlarmService).
 class DeviceLostBanner extends StatelessWidget {
   const DeviceLostBanner({super.key});
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Name of the person who is logged in (doctor / nurse). This is NOT the
-/// patient's name: the patient's name lives in [patientProfile].
+/// Name of the account that is logged in. Each account is one person, so
+/// this is normally the same person as [patientProfile] (whose name can be
+/// edited separately in the profile page).
 final ValueNotifier<String> currentUserName = ValueNotifier<String>('');
 
 final ValueNotifier<bool> isArabic = ValueNotifier<bool>(false);

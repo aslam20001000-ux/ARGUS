@@ -18,11 +18,13 @@ class EwsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = Ews.compute(vitals);
-    final color = switch (r.risk) {
-      EwsRisk.low => _green,
-      EwsRisk.medium => _amber,
-      EwsRisk.high => _red,
-    };
+    final color = r.noData
+        ? AppColors.text.withValues(alpha: .4)
+        : switch (r.risk) {
+            EwsRisk.low => _green,
+            EwsRisk.medium => _amber,
+            EwsRisk.high => _red,
+          };
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -63,7 +65,7 @@ class EwsCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${r.score}',
+                      r.noData ? '--' : '${r.score}',
                       style: TextStyle(
                         fontSize: 32,
                         height: 1,
@@ -123,7 +125,9 @@ class EwsCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${p.label} +${p.points}',
+                          p.valueText == '--'
+                              ? '${p.label} --'
+                              : '${p.label} +${p.points}',
                           style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,

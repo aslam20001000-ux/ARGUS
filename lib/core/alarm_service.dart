@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'alarm_sound.dart';
+import 'auth_service.dart';
 import 'notification_service.dart';
 import 'settings_store.dart';
 import 'vitals_store.dart';
@@ -43,16 +46,66 @@ class AlarmService extends ChangeNotifier {
 
   static const int maxHistory = 50;
 
-  final Map<AlarmParam, AlarmLimit> limits = {
-    AlarmParam.heartRate: AlarmLimit(low: 50, high: 120),
-    AlarmParam.spo2: AlarmLimit(low: 92, high: 100),
-    AlarmParam.respRate: AlarmLimit(low: 10, high: 25),
-    AlarmParam.temperature: AlarmLimit(low: 35.5, high: 38.0),
+  /// How long "Silence" mutes the sound before it rings again (if the alarm
+  /// is still active), like a bedside monitor.
+  static const Duration silenceFor = Duration(minutes: 2);
+
+  /// Default limits (low, high). Temperature in °C.
+  static const Map<AlarmParam, (double, double)> defaultLimits = {
+    AlarmParam.heartRate: (50.0, 120.0),
+    AlarmParam.spo2: (92.0, 100.0),
+    AlarmParam.respRate: (10.0, 25.0),
+    AlarmParam.temperature: (35.5, 38.0),
     // ECG has no numeric limits: it alarms on lead-off / irregular rhythm.
-    AlarmParam.ecg: AlarmLimit(low: 0, high: 0),
+    AlarmParam.ecg: (0.0, 0.0),
     // Bladder only has a high limit (filling percentage).
-    AlarmParam.bladder: AlarmLimit(low: 0, high: 80),
+    AlarmParam.bladder: (0.0, 80.0),
   };
+
+  /// Values a limit may be set to (min, max). Outside these an alarm would be
+  /// silently switched off (e.g. heart rate high = 999), so they are refused.
+  /// Temperature in °C.
+  static const Map<AlarmParam, (double, double)> allowedRange = {
+    AlarmParam.heartRate: (20.0, 250.0),
+    AlarmParam.spo2: (50.0, 100.0),
+    AlarmParam.respRate: (3.0, 60.0),
+    AlarmParam.temperature: (30.0, 43.0),
+    AlarmParam.bladder: (10.0, 100.0),
+  };
+
+  /// Once an alarm is on, the reading must come back inside the limits by
+  /// this much before the alarm clears. Stops a value hovering at the limit
+  /// (119 / 121 / 119 ...) from starting a new alarm every second.
+  static const Map<AlarmParam, double> clearMargin = {
+    AlarmParam.heartRate: 3.0,
+    AlarmParam.spo2: 1.0,
+    AlarmParam.respRate: 1.0,
+    AlarmParam.temperature: 0.2,
+    AlarmParam.bladder: 3.0,
+  };
+
+  final Map<AlarmParam, AlarmLimit> limits = {
+    for (final e in defaultLimits.entries)
+      e.key: AlarmLimit(low: e.value.$1, high: e.value.$2),
+  };
+
+  /// Error text if [low]–[high] is not allowed for [p], otherwise null.
+  /// Values in internal units (°C for temperature).
+  static String? checkLimits(AlarmParam p, double low, double high) {
+    final range = allowedRange[p];
+    if (range == null) return null;
+    final (min, max) = range;
+    String f(double v) => formatNumber(p, v);
+    final unit = unitOf(p);
+    if (p != AlarmParam.bladder && (low < min || low > max)) {
+      return 'Low limit must be between ${f(min)} and ${f(max)} $unit';
+    }
+    if (high < min || high > max) {
+      return 'High limit must be between ${f(min)} and ${f(max)} $unit';
+    }
+    if (low >= high) return 'Low limit must be below high limit';
+    return null;
+  }
 
   final Map<AlarmParam, AlarmLevel> levels = {
     for (final p in AlarmParam.values) p: AlarmLevel.normal,
@@ -63,6 +116,10 @@ class AlarmService extends ChangeNotifier {
   /// True after the user pressed "Silence". It resets when all alarms clear or
   /// when a new alarm starts.
   bool silenced = false;
+  Timer? _silenceTimer;
+
+  /// True while the ESP32 connection is lost (set by DeviceService).
+  bool deviceLost = false;
 
   bool _started = false;
 
@@ -83,13 +140,29 @@ class AlarmService extends ChangeNotifier {
     for (final p in AlarmParam.values) {
       levels[p] = AlarmLevel.normal;
     }
-    silenced = false;
+    deviceLost = false;
+    _clearSilence();
+    // The next person to log in must not see this account's alarms.
+    history.clear();
     AlarmSound.instance.stop();
     notifyListeners();
   }
 
+  /// Number of active alarms, the device-lost alarm included.
   int get activeCount =>
-      levels.values.where((l) => l != AlarmLevel.normal).length;
+      levels.values.where((l) => l != AlarmLevel.normal).length +
+      (deviceLost ? 1 : 0);
+
+  /// Text for the device-lost alarm.
+  static const String deviceLostText = 'Device disconnected • no readings';
+
+  /// Called by DeviceService when the connection is lost / comes back.
+  void setDeviceLost(bool lost) {
+    if (deviceLost == lost) return;
+    deviceLost = lost;
+    _updateSound(newAlarm: lost);
+    notifyListeners();
+  }
 
   List<AlarmParam> get activeParams => [
     for (final p in AlarmParam.values)
@@ -126,14 +199,15 @@ class AlarmService extends ChangeNotifier {
   }
 
   /// Numeric reading of a parameter (°C for temperature).
-  static double valueOf(AlarmParam p, VitalsData v) => _numericValue(p, v);
+  /// null when there is no reading for it.
+  static double? valueOf(AlarmParam p, VitalsData v) => _numericValue(p, v);
 
-  static double _numericValue(AlarmParam p, VitalsData v) => switch (p) {
-    AlarmParam.heartRate => v.hr.toDouble(),
-    AlarmParam.spo2 => v.spo2.toDouble(),
-    AlarmParam.respRate => v.rr.toDouble(),
+  static double? _numericValue(AlarmParam p, VitalsData v) => switch (p) {
+    AlarmParam.heartRate => v.hr?.toDouble(),
+    AlarmParam.spo2 => v.spo2?.toDouble(),
+    AlarmParam.respRate => v.rr?.toDouble(),
     AlarmParam.temperature => v.temp,
-    AlarmParam.ecg => 0,
+    AlarmParam.ecg => 0.0,
     AlarmParam.bladder => v.bladderPercent,
   };
 
@@ -143,12 +217,18 @@ class AlarmService extends ChangeNotifier {
       if (v.ecgIrregular) return 'Irregular';
       return 'Normal';
     }
-    return '${formatNumber(p, _numericValue(p, v))} ${unitOf(p)}';
+    final value = _numericValue(p, v);
+    if (value == null) return '-- ${unitOf(p)}';
+    return '${formatNumber(p, value)} ${unitOf(p)}';
   }
 
   /// Short status text for chips: OFF / NORMAL / LOW / HIGH / ALERT.
   String statusLabel(AlarmParam p) {
     if (!limits[p]!.enabled) return 'OFF';
+    if (p != AlarmParam.ecg &&
+        _numericValue(p, VitalsStore.instance.vitals.value) == null) {
+      return 'NO DATA';
+    }
     return switch (levels[p] ?? AlarmLevel.normal) {
       AlarmLevel.normal => 'NORMAL',
       AlarmLevel.low => 'LOW',
@@ -179,18 +259,35 @@ class AlarmService extends ChangeNotifier {
     _evaluate();
   }
 
-  /// Loads the alarm limits saved on this device (call once at app start).
+  /// Saved limits are kept separately for each account.
+  static String _key(AlarmParam p) => 'alarm_${AuthService.uid}_${p.name}';
+
+  /// Back to the default limits (used on logout and before loading).
+  void resetLimits() {
+    for (final e in defaultLimits.entries) {
+      limits[e.key]!
+        ..low = e.value.$1
+        ..high = e.value.$2
+        ..enabled = true;
+    }
+  }
+
+  /// Loads the signed-in account's alarm limits (call when a session starts).
   Future<void> loadLimits() async {
+    resetLimits();
+    if (AuthService.uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       for (final p in AlarmParam.values) {
-        final text = prefs.getString('alarm_${p.name}');
+        final text = prefs.getString(_key(p));
         if (text == null) continue;
         final parts = text.split('|');
         if (parts.length != 3) continue;
         final low = double.tryParse(parts[0]);
         final high = double.tryParse(parts[1]);
         if (low == null || high == null) continue;
+        // Ignore a saved value that is outside the allowed range.
+        if (checkLimits(p, low, high) != null) continue;
         limits[p]!
           ..low = low
           ..high = high
@@ -202,12 +299,13 @@ class AlarmService extends ChangeNotifier {
   }
 
   Future<void> _saveLimits() async {
+    if (AuthService.uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       for (final p in AlarmParam.values) {
         final l = limits[p]!;
         await prefs.setString(
-          'alarm_${p.name}',
+          _key(p),
           '${l.low}|${l.high}|${l.enabled ? 1 : 0}',
         );
       }
@@ -221,16 +319,40 @@ class AlarmService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Mute the sound for the current alarms. A new alarm un-mutes it.
+  /// Mute the sound for [silenceFor]. A new alarm un-mutes it at once; if
+  /// the alarm is still active when the time is up, it rings again.
   void silence() {
     silenced = true;
     AlarmSound.instance.stop();
+    _silenceTimer?.cancel();
+    _silenceTimer = Timer(silenceFor, () {
+      _silenceTimer = null;
+      silenced = false;
+      if (activeCount > 0) AlarmSound.instance.start();
+      notifyListeners();
+    });
     notifyListeners();
+  }
+
+  void _clearSilence() {
+    silenced = false;
+    _silenceTimer?.cancel();
+    _silenceTimer = null;
+  }
+
+  void _updateSound({required bool newAlarm}) {
+    if (activeCount == 0) {
+      _clearSilence();
+      AlarmSound.instance.stop();
+    } else if (newAlarm) {
+      _clearSilence();
+      AlarmSound.instance.start();
+    }
   }
 
   // ---------- Evaluation ----------
 
-  AlarmLevel _levelFor(AlarmParam p, VitalsData v) {
+  AlarmLevel _levelFor(AlarmParam p, VitalsData v, AlarmLevel previous) {
     final limit = limits[p]!;
     if (!limit.enabled) return AlarmLevel.normal;
 
@@ -240,7 +362,20 @@ class AlarmService extends ChangeNotifier {
           : AlarmLevel.normal;
     }
 
+    // No reading: nothing to compare (shown as "NO DATA"). A lost device
+    // has its own alarm.
     final value = _numericValue(p, v);
+    if (value == null) return AlarmLevel.normal;
+
+    // Already alarming: stay on until the value is back inside by a margin.
+    final margin = clearMargin[p] ?? 0;
+    if (previous == AlarmLevel.low && value < limit.low + margin) {
+      return AlarmLevel.low;
+    }
+    if (previous == AlarmLevel.high && value > limit.high - margin) {
+      return AlarmLevel.high;
+    }
+
     if (value < limit.low) return AlarmLevel.low;
     if (value > limit.high) return AlarmLevel.high;
     return AlarmLevel.normal;
@@ -260,8 +395,8 @@ class AlarmService extends ChangeNotifier {
     var newAlarm = false;
 
     for (final p in AlarmParam.values) {
-      final level = _levelFor(p, v);
       final previous = levels[p] ?? AlarmLevel.normal;
+      final level = _levelFor(p, v, previous);
       levels[p] = level;
 
       // Log only when an alarm starts (or changes level), not on every tick.
@@ -287,14 +422,7 @@ class AlarmService extends ChangeNotifier {
       }
     }
 
-    if (activeCount == 0) {
-      silenced = false;
-      AlarmSound.instance.stop();
-    } else if (newAlarm) {
-      silenced = false;
-      AlarmSound.instance.start();
-    }
-
+    _updateSound(newAlarm: newAlarm);
     notifyListeners();
   }
 }

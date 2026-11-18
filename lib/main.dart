@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 
-import 'core/alarm_service.dart';
 import 'core/app_colors.dart';
 import 'core/app_state.dart';
 import 'core/auth_service.dart';
@@ -17,9 +16,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Saved settings and alarm limits (theme, language, sound, limits...).
+  // Last theme / language used on this phone (for the login screen). Each
+  // account's own settings and alarm limits are loaded when it signs in.
   await SettingsStore.instance.load();
-  await AlarmService.instance.loadLimits();
   await NotificationService.instance.init();
 
   // Already signed in (like Facebook)? The splash screen goes straight in.
@@ -89,7 +88,7 @@ class _MyAppState extends State<MyApp> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            child ?? const SizedBox.shrink(),
+            ?child,
             const Positioned(top: 0, left: 0, right: 0, child: AlarmBanner()),
             const Positioned(
               bottom: 0,

@@ -206,13 +206,21 @@ class _HistoryPageState extends State<HistoryPage> {
     double conv(double v) =>
         p == AlarmParam.temperature ? settings.toDisplayTemp(v) : v;
 
-    final times = [for (final s in samples) s.time];
-    final values = [
-      for (final s in samples) conv(AlarmService.valueOf(p, s.data)),
+    // Only the samples that have a reading for this parameter.
+    final valid = [
+      for (final s in samples)
+        if (AlarmService.valueOf(p, s.data) != null) s,
     ];
-    final minV = values.reduce((a, b) => a < b ? a : b);
-    final maxV = values.reduce((a, b) => a > b ? a : b);
-    final avg = values.reduce((a, b) => a + b) / values.length;
+    final times = [for (final s in valid) s.time];
+    final values = [
+      for (final s in valid) conv(AlarmService.valueOf(p, s.data)!),
+    ];
+    double? minV, maxV, avg;
+    if (values.isNotEmpty) {
+      minV = values.reduce((a, b) => a < b ? a : b);
+      maxV = values.reduce((a, b) => a > b ? a : b);
+      avg = values.reduce((a, b) => a + b) / values.length;
+    }
 
     final limit = alarms.limits[p]!;
     final lowLimit = (limit.enabled && p != AlarmParam.bladder)
@@ -220,9 +228,8 @@ class _HistoryPageState extends State<HistoryPage> {
         : null;
     final highLimit = limit.enabled ? conv(limit.high) : null;
 
-    String f(double v) => p == AlarmParam.temperature
-        ? v.toStringAsFixed(1)
-        : v.toStringAsFixed(0);
+    String f(double? v) =>
+        showDouble(v, p == AlarmParam.temperature ? 1 : 0);
     final unit = AlarmService.unitOf(p);
 
     return _card(

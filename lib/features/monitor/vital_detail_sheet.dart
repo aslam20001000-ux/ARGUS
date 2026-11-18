@@ -59,17 +59,21 @@ class _VitalDetailSheetState extends State<_VitalDetailSheet> {
       builder: (context, _) {
         double conv(double v) =>
             p == AlarmParam.temperature ? settings.toDisplayTemp(v) : v;
-        String f(double v) => p == AlarmParam.temperature
-            ? v.toStringAsFixed(1)
-            : v.toStringAsFixed(0);
+        String f(double? v) =>
+            showDouble(v, p == AlarmParam.temperature ? 1 : 0);
 
         final duration = _ranges[_range].$2;
-        final samples = store.samplesWithin(duration);
+        // Only the samples that have a reading for this parameter.
+        final samples = [
+          for (final s in store.samplesWithin(duration))
+            if (AlarmService.valueOf(p, s.data) != null) s,
+        ];
         final times = [for (final s in samples) s.time];
         final values = [
-          for (final s in samples) conv(AlarmService.valueOf(p, s.data)),
+          for (final s in samples) conv(AlarmService.valueOf(p, s.data)!),
         ];
-        final now = conv(AlarmService.valueOf(p, store.vitals.value));
+        final nowRaw = AlarmService.valueOf(p, store.vitals.value);
+        final now = nowRaw == null ? null : conv(nowRaw);
         final limit = AlarmService.instance.limits[p]!;
         final unit = AlarmService.unitOf(p);
 

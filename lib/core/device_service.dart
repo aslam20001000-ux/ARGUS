@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'alarm_service.dart';
 import 'ecg_buffer.dart';
 import 'notification_service.dart';
 import 'settings_store.dart';
@@ -37,6 +38,10 @@ class DeviceService extends ChangeNotifier {
   Timer? _retry;
   bool _wanted = false;
   bool _notifiedLost = false;
+
+  /// True from the moment the connection is lost until it comes back (also
+  /// while reconnecting), so the alarm does not stop during retries.
+  bool _deviceAlarm = false;
   int _attempt = 0; // ignores callbacks from old connections
 
   bool get connected => status == DeviceStatus.connected;
@@ -53,6 +58,8 @@ class DeviceService extends ChangeNotifier {
       return;
     }
     _wanted = true;
+    _retry?.cancel();
+    _retry = null;
     VitalsStore.instance.useDevice();
     await _open();
   }
@@ -63,6 +70,7 @@ class DeviceService extends ChangeNotifier {
     _retry?.cancel();
     _retry = null;
     await _close();
+    _deviceAlarm = false;
     _setStatus(DeviceStatus.off);
     _notifiedLost = false;
     EcgBuffer.instance.clear();
@@ -93,6 +101,7 @@ class DeviceService extends ChangeNotifier {
         cancelOnError: true,
       );
       lastMessage = DateTime.now();
+      _deviceAlarm = false;
       _setStatus(DeviceStatus.connected);
       _notifiedLost = false;
       _watchdog?.cancel();
@@ -123,6 +132,10 @@ class DeviceService extends ChangeNotifier {
     if (!_wanted) return;
     lastError = reason;
     _close();
+    // Old values must not stay on screen as if they were live.
+    VitalsStore.instance.markNoData();
+    EcgBuffer.instance.clear();
+    _deviceAlarm = true;
     _setStatus(DeviceStatus.lost);
     if (!_notifiedLost) {
       _notifiedLost = true;
@@ -145,11 +158,12 @@ class DeviceService extends ChangeNotifier {
         case 'vitals':
           VitalsStore.instance.update(
             VitalsData(
-              hr: (msg['hr'] as num?)?.round() ?? 0,
-              spo2: (msg['spo2'] as num?)?.round() ?? 0,
-              rr: (msg['rr'] as num?)?.round() ?? 0,
-              temp: (msg['temp'] as num?)?.toDouble() ?? 0,
-              impedance: (msg['imp'] as num?)?.toDouble() ?? 0,
+              // A missing field (or null) means "no reading", never 0.
+              hr: (msg['hr'] as num?)?.round(),
+              spo2: (msg['spo2'] as num?)?.round(),
+              rr: (msg['rr'] as num?)?.round(),
+              temp: (msg['temp'] as num?)?.toDouble(),
+              impedance: (msg['imp'] as num?)?.toDouble(),
               ecgLeadOff: msg['leadOff'] == true,
               ecgIrregular: msg['irregular'] == true,
             ),
@@ -171,6 +185,8 @@ class DeviceService extends ChangeNotifier {
   void _setStatus(DeviceStatus s) {
     status = s;
     SettingsStore.instance.setDeviceConnected(s == DeviceStatus.connected);
+    // Losing the device is an alarm of its own (with sound).
+    AlarmService.instance.setDeviceLost(_deviceAlarm);
     notifyListeners();
   }
 }

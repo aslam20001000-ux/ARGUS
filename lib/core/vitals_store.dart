@@ -4,35 +4,59 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 /// One snapshot of every reading shown in the app.
+///
+/// A value is null when there is no reading for it (sensor not sending,
+/// device disconnected, or nothing received yet). Null is shown as "--" and
+/// never treated as 0.
 class VitalsData {
-  final int hr;
-  final int spo2;
-  final int rr;
-  final double temp;
-  final double impedance;
+  final int? hr;
+  final int? spo2;
+  final int? rr;
+  final double? temp;
+  final double? impedance;
   final bool ecgLeadOff;
   final bool ecgIrregular;
 
   const VitalsData({
-    this.hr = 78,
-    this.spo2 = 98,
-    this.rr = 16,
-    this.temp = 36.7,
-    this.impedance = 40,
+    this.hr,
+    this.spo2,
+    this.rr,
+    this.temp,
+    this.impedance,
     this.ecgLeadOff = false,
     this.ecgIrregular = false,
   });
 
+  /// No readings at all.
+  static const VitalsData none = VitalsData();
+
+  /// True when at least one number is present.
+  bool get hasAny =>
+      hr != null ||
+      spo2 != null ||
+      rr != null ||
+      temp != null ||
+      impedance != null;
+
   /// Prototype mapping only: higher impedance -> higher displayed filling.
   /// Replace with the real sensor calibration later.
-  double get bladderPercent {
+  double? get bladderPercent {
+    final z = impedance;
+    if (z == null) return null;
     const minImpedance = 40.0;
     const maxImpedance = 180.0;
     final percentage =
-        ((impedance - minImpedance) / (maxImpedance - minImpedance)) * 100;
+        ((z - minImpedance) / (maxImpedance - minImpedance)) * 100;
     return percentage.clamp(0.0, 100.0).toDouble();
   }
 }
+
+/// "--" for a missing whole number.
+String showInt(int? v) => v == null ? '--' : '$v';
+
+/// "--" for a missing decimal number.
+String showDouble(double? v, int digits) =>
+    v == null ? '--' : v.toStringAsFixed(digits);
 
 /// A reading saved for the History page.
 class VitalsSample {
@@ -49,7 +73,7 @@ class VitalsStore {
   VitalsStore._();
   static final VitalsStore instance = VitalsStore._();
 
-  final ValueNotifier<VitalsData> vitals = ValueNotifier(const VitalsData());
+  final ValueNotifier<VitalsData> vitals = ValueNotifier(VitalsData.none);
 
   /// Saved readings (about one every 10 seconds, last 24 hours). They live in
   /// memory only: closing the app clears them.
@@ -86,18 +110,28 @@ class VitalsStore {
     _timer?.cancel();
     _timer = null;
     samples.clear();
+    vitals.value = VitalsData.none;
   }
 
   void _startSimulationIfNeeded() {
     if (!_started || _external || _timer != null) return;
+    _simulate(); // show numbers right away instead of "--" for 2 seconds
     _timer = Timer.periodic(const Duration(seconds: 2), (_) => _simulate());
   }
 
-  /// Real device mode: stop the demo data (the history is kept).
+  /// Real device mode: stop the demo data (the history is kept). The screen
+  /// shows "--" until the device sends its first reading.
   void useDevice() {
     _external = true;
     _timer?.cancel();
     _timer = null;
+    vitals.value = VitalsData.none;
+  }
+
+  /// The device stopped sending: show "--" instead of the last (old) values.
+  /// Nothing is added to the history.
+  void markNoData() {
+    vitals.value = VitalsData.none;
   }
 
   /// Back to the demo data.
@@ -114,6 +148,7 @@ class VitalsStore {
   }
 
   void _record(VitalsData data) {
+    if (!data.hasAny) return;
     final now = DateTime.now();
     if (samples.isEmpty || now.difference(samples.last.time) >= sampleEvery) {
       samples.add(VitalsSample(now, data));
@@ -125,8 +160,10 @@ class VitalsStore {
   }
 
   void _simulate() {
-    _impedance += 4 + _random.nextDouble() * 8;
-    if (_impedance >= 180) {
+    // Demo bladder: fills slowly and "empties" at about 75 %, so the demo
+    // does not ring the bladder alarm every half minute.
+    _impedance += 0.5 + _random.nextDouble();
+    if (_impedance >= 145) {
       _impedance = 40;
     }
 

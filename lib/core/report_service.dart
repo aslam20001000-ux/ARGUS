@@ -66,7 +66,8 @@ class ReportService {
           cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
         );
 
-    String temp(double c) => settings.toDisplayTemp(c).toStringAsFixed(1);
+    String temp(double? c) =>
+        showDouble(c == null ? null : settings.toDisplayTemp(c), 1);
 
     // ----- Statistics for the chosen period -----
     final stats = <List<String>>[];
@@ -96,9 +97,22 @@ class ReportService {
         ]);
         continue;
       }
+      // Only the samples that have a reading for this parameter.
       final values = [
-        for (final s in samples) AlarmService.valueOf(param, s.data),
+        for (final s in samples)
+          ?AlarmService.valueOf(param, s.data),
       ];
+      if (values.isEmpty) {
+        stats.add([
+          AlarmService.labelOf(param),
+          '-',
+          '-',
+          '-',
+          range0,
+          AlarmService.unitOf(param),
+        ]);
+        continue;
+      }
       final min = values.reduce((a, b) => a < b ? a : b);
       final max = values.reduce((a, b) => a > b ? a : b);
       final avg = values.reduce((a, b) => a + b) / values.length;
@@ -164,11 +178,11 @@ class ReportService {
             ['Heart rate', 'SpO2', 'Resp. rate', 'Temperature', 'Bladder'],
             [
               [
-                '${current.hr} BPM',
-                '${current.spo2} %',
-                '${current.rr} RPM',
+                '${showInt(current.hr)} BPM',
+                '${showInt(current.spo2)} %',
+                '${showInt(current.rr)} RPM',
                 '${temp(current.temp)} ${settings.tempSymbol}',
-                '${current.bladderPercent.toStringAsFixed(0)} %',
+                '${showDouble(current.bladderPercent, 0)} %',
               ],
             ],
           ),

@@ -26,10 +26,11 @@ const _blue = Color(0xFF54A9FF);
 /// per reading (with a short trend line and its alarm limits).
 class DashboardPage extends StatelessWidget {
   final String patientName;
-  final int heartRate;
-  final int spo2;
-  final int respiratoryRate;
-  final double temperature;
+  // null = no reading (shown as "--").
+  final int? heartRate;
+  final int? spo2;
+  final int? respiratoryRate;
+  final double? temperature;
 
   const DashboardPage({
     super.key,
@@ -56,9 +57,8 @@ class DashboardPage extends StatelessWidget {
         /// Trend values of one reading (temperature in the chosen unit).
         List<double> trendOf(AlarmParam p) => [
           for (final s in samples)
-            p == AlarmParam.temperature
-                ? settings.toDisplayTemp(AlarmService.valueOf(p, s.data))
-                : AlarmService.valueOf(p, s.data),
+            if (AlarmService.valueOf(p, s.data) case final v?)
+              p == AlarmParam.temperature ? settings.toDisplayTemp(v) : v,
         ];
 
         String limitsText(AlarmParam p) {
@@ -110,16 +110,23 @@ class DashboardPage extends StatelessWidget {
         final hr = vital(
           AlarmParam.heartRate,
           'Heart Rate',
-          '$heartRate',
+          showInt(heartRate),
           'BPM',
           Icons.favorite,
           _green,
         );
-        final sp = vital(AlarmParam.spo2, 'SpO₂', '$spo2', '%', Icons.air, _cyan);
+        final sp = vital(
+          AlarmParam.spo2,
+          'SpO₂',
+          showInt(spo2),
+          '%',
+          Icons.air,
+          _cyan,
+        );
         final rr = vital(
           AlarmParam.respRate,
           'Resp. Rate',
-          '$respiratoryRate',
+          showInt(respiratoryRate),
           'RPM',
           Icons.waves,
           _amber,
@@ -127,7 +134,10 @@ class DashboardPage extends StatelessWidget {
         final tp = vital(
           AlarmParam.temperature,
           'Temperature',
-          settings.toDisplayTemp(temperature).toStringAsFixed(1),
+          showDouble(
+            temperature == null ? null : settings.toDisplayTemp(temperature!),
+            1,
+          ),
           settings.tempSymbol,
           Icons.thermostat,
           _orange,
@@ -135,7 +145,7 @@ class DashboardPage extends StatelessWidget {
         final bl = vital(
           AlarmParam.bladder,
           'Bladder',
-          bladderValue.toStringAsFixed(0),
+          showDouble(bladderValue, 0),
           '%',
           Icons.water_drop,
           _blue,

@@ -48,7 +48,8 @@ class VitalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = alarm ? _red : color;
-    final off = status == 'OFF';
+    // Greyed out when the alarm is off or there is no reading.
+    final off = status == 'OFF' || status == 'NO DATA';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),

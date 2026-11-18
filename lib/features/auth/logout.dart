@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/alarm_service.dart';
+import '../../core/background_monitor.dart';
 import '../../core/device_service.dart';
 import '../../core/app_state.dart';
 import '../../core/auth_service.dart';
@@ -44,8 +45,10 @@ Future<void> confirmLogout(BuildContext context) async {
 
   // Stop the data feed and any ringing alarm before leaving.
   await DeviceService.instance.stop();
-  AlarmService.instance.stopMonitoring();
+  AlarmService.instance.stopMonitoring(); // also clears the alarm log
+  AlarmService.instance.resetLimits();
   VitalsStore.instance.stop();
+  await BackgroundMonitor.stop();
   await AuthService.signOut();
   if (!context.mounted) return;
 

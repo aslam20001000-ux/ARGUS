@@ -41,9 +41,11 @@ dependencies:
   shared_preferences: ^2.5.6
   pdf: ^3.12.0
   printing: ^5.14.3
-  cloud_firestore: ^7.0.0
   flutter_local_notifications: 19.0.0
-  web_socket_channel: ^3.0.1
+  web_socket_channel: ^3.0.3
+  # Keeps the screen on while monitoring on iOS (Android uses MonitorService).
+  wakelock_plus: ^1.2.8
+  cloud_firestore: ^7.2.0
 
 dev_dependencies:
   flutter_test:

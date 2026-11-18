@@ -348,12 +348,15 @@ class FeatureSelectionPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      metric('BPM', '${v.hr}', AlarmParam.heartRate),
-                      metric('SpO₂', '${v.spo2}%', AlarmParam.spo2),
-                      metric('RR', '${v.rr}', AlarmParam.respRate),
+                      metric('BPM', showInt(v.hr), AlarmParam.heartRate),
+                      metric('SpO₂', '${showInt(v.spo2)}%', AlarmParam.spo2),
+                      metric('RR', showInt(v.rr), AlarmParam.respRate),
                       metric(
                         settings.tempSymbol,
-                        settings.toDisplayTemp(v.temp).toStringAsFixed(1),
+                        showDouble(
+                          v.temp == null ? null : settings.toDisplayTemp(v.temp!),
+                          1,
+                        ),
                         AlarmParam.temperature,
                       ),
                     ],
@@ -473,7 +476,7 @@ class FeatureSelectionPage extends StatelessWidget {
                     child: Icon(icon, color: color, size: 25),
                   ),
                   const Spacer(),
-                  badge ?? const SizedBox.shrink(),
+                  ?badge,
                 ],
               ),
               SizedBox(height: compact ? 12 : 16),

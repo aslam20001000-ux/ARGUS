@@ -18,8 +18,9 @@ class BladderPage extends StatefulWidget {
 class _BladderPageState extends State<BladderPage> {
   final VitalsStore store = VitalsStore.instance;
 
-  double get impedance => store.vitals.value.impedance;
-  double get fillPercentage => store.vitals.value.bladderPercent;
+  // null = no reading (shown as "--").
+  double? get impedance => store.vitals.value.impedance;
+  double? get fillPercentage => store.vitals.value.bladderPercent;
 
   @override
   void initState() {
@@ -39,7 +40,9 @@ class _BladderPageState extends State<BladderPage> {
 
   @override
   Widget build(BuildContext context) {
-    final percentage = fillPercentage;
+    final reading = fillPercentage;
+    // The gauge needs a number: an empty gauge with "--" when there is none.
+    final percentage = reading ?? 0;
     final alarm =
         AlarmService.instance.levels[AlarmParam.bladder] != AlarmLevel.normal;
     const alarmRed = Color(0xFFE65F72);
@@ -95,6 +98,7 @@ class _BladderPageState extends State<BladderPage> {
                       height: 330,
                       child: BladderVisualization(
                         percentage: percentage,
+                        noData: reading == null,
                         color: alarm ? alarmRed : const Color(0xFF54A9FF),
                       ),
                     ),
@@ -114,8 +118,8 @@ class _BladderPageState extends State<BladderPage> {
                         ),
                       ),
                       child: Text(
-                        '${percentage.toStringAsFixed(0)}%',
-                        key: ValueKey<int>(percentage.round()),
+                        '${showDouble(reading, 0)}%',
+                        key: ValueKey<int>(reading?.round() ?? -1),
                         style: TextStyle(
                           fontSize: 38,
                           fontWeight: FontWeight.bold,
@@ -204,7 +208,7 @@ class _BladderPageState extends State<BladderPage> {
                     const SizedBox(height: 18),
                     FittedBox(
                       child: Text(
-                        impedance.toStringAsFixed(1),
+                        showDouble(impedance, 1),
                         style: const TextStyle(
                           color: Color(0xFF54A9FF),
                           fontSize: 34,
@@ -271,10 +275,14 @@ class BladderVisualization extends StatelessWidget {
   final double percentage;
   final Color color;
 
+  /// No reading: the label shows "--%" instead of "0%".
+  final bool noData;
+
   const BladderVisualization({
     super.key,
     required this.percentage,
     this.color = const Color(0xFF54A9FF),
+    this.noData = false,
   });
 
   @override
@@ -288,6 +296,7 @@ class BladderVisualization extends StatelessWidget {
           painter: BladderPainter(
             percentage: animatedPercentage,
             color: color,
+            noData: noData,
           ),
           child: const SizedBox.expand(),
         );
@@ -299,10 +308,12 @@ class BladderVisualization extends StatelessWidget {
 class BladderPainter extends CustomPainter {
   final double percentage;
   final Color color;
+  final bool noData;
 
   BladderPainter({
     required this.percentage,
     this.color = const Color(0xFF54A9FF),
+    this.noData = false,
   });
 
   @override
@@ -400,7 +411,7 @@ class BladderPainter extends CustomPainter {
 
     final labelPaint = TextPainter(
       text: TextSpan(
-        text: '${percentage.toStringAsFixed(0)}%',
+        text: noData ? '--%' : '${percentage.toStringAsFixed(0)}%',
         style:  TextStyle(
           color: AppColors.text,
           fontSize: 18,
@@ -417,6 +428,8 @@ class BladderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant BladderPainter oldDelegate) {
-    return oldDelegate.percentage != percentage || oldDelegate.color != color;
+    return oldDelegate.percentage != percentage ||
+        oldDelegate.color != color ||
+        oldDelegate.noData != noData;
   }
 }
