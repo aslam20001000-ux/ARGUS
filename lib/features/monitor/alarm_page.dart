@@ -12,7 +12,8 @@ Color get _red => AppColors.red;
 Color get _blue => AppColors.blue;
 Color get _card => AppColors.card;
 
-IconData _iconOf(AlarmParam p) => switch (p) {
+IconData _iconOf(AlarmParam? p) => switch (p) {
+  null => Icons.wifi_off,
   AlarmParam.heartRate => Icons.favorite,
   AlarmParam.spo2 => Icons.air,
   AlarmParam.respRate => Icons.waves,

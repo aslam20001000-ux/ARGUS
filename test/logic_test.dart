@@ -157,6 +157,20 @@ void main() {
       expect(alarms.history.first.message, 'ECG leads disconnected');
     });
 
+    test('losing the device is logged once and counts as an active alarm', () {
+      alarms.setDeviceLost(true);
+      alarms.setDeviceLost(true); // still lost: no second entry
+      expect(alarms.activeCount, 1);
+      expect(alarms.history.length, 1);
+      expect(alarms.history.first.isDevice, isTrue);
+      expect(alarms.history.first.label, 'Device');
+      expect(alarms.history.first.message, 'Device disconnected');
+
+      alarms.setDeviceLost(false);
+      expect(alarms.activeCount, 0);
+      expect(alarms.history.length, 1); // the log keeps the event
+    });
+
     test('a disabled alarm stays quiet', () {
       alarms.limits[AlarmParam.heartRate]!.enabled = false;
       store.update(const VitalsData(hr: 200));

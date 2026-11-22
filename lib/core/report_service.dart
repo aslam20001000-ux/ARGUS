@@ -206,7 +206,7 @@ class ReportService {
                 for (final e in events)
                   [
                     _dateTime(e.time),
-                    AlarmService.labelOf(e.param),
+                    e.label,
                     e.level.name.toUpperCase(),
                     e.message,
                     e.valueText,

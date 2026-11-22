@@ -1052,7 +1052,8 @@ class _RecentAlarms extends StatelessWidget {
     return tr('${d.inDays} d ago', 'منذ ${d.inDays} يوم');
   }
 
-  static IconData _icon(AlarmParam p) => switch (p) {
+  static IconData _icon(AlarmParam? p) => switch (p) {
+    null => Icons.wifi_off_rounded,
     AlarmParam.heartRate => Icons.favorite_rounded,
     AlarmParam.spo2 => Icons.water_drop_rounded,
     AlarmParam.respRate => Icons.air_rounded,

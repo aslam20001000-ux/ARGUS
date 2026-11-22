@@ -22,7 +22,8 @@ class AlarmLimit {
 }
 
 class AlarmEvent {
-  final AlarmParam param;
+  /// The reading that alarmed, or null for the device-connection alarm.
+  final AlarmParam? param;
   final AlarmLevel level;
   final String message;
   final String valueText;
@@ -35,6 +36,12 @@ class AlarmEvent {
     required this.valueText,
     required this.time,
   });
+
+  /// True for "the ESP32 connection was lost".
+  bool get isDevice => param == null;
+
+  /// "Heart Rate", "SpO₂", … or "Device".
+  String get label => param == null ? 'Device' : AlarmService.labelOf(param!);
 }
 
 /// Watches [VitalsStore], compares every reading with its limits, keeps the
@@ -160,6 +167,17 @@ class AlarmService extends ChangeNotifier {
   void setDeviceLost(bool lost) {
     if (deviceLost == lost) return;
     deviceLost = lost;
+    if (lost) {
+      _log(
+        AlarmEvent(
+          param: null,
+          level: AlarmLevel.alert,
+          message: 'Device disconnected',
+          valueText: 'No readings',
+          time: DateTime.now(),
+        ),
+      );
+    }
     _updateSound(newAlarm: lost);
     notifyListeners();
   }
@@ -390,6 +408,14 @@ class AlarmService extends ChangeNotifier {
     return '${labelOf(p)} $direction limit';
   }
 
+  /// Adds [e] to the top of the alarm log (newest first, at most [maxHistory]).
+  void _log(AlarmEvent e) {
+    history.insert(0, e);
+    if (history.length > maxHistory) {
+      history.removeRange(maxHistory, history.length);
+    }
+  }
+
   void _evaluate() {
     final v = VitalsStore.instance.vitals.value;
     var newAlarm = false;
@@ -402,8 +428,7 @@ class AlarmService extends ChangeNotifier {
       // Log only when an alarm starts (or changes level), not on every tick.
       if (level != AlarmLevel.normal && level != previous) {
         newAlarm = true;
-        history.insert(
-          0,
+        _log(
           AlarmEvent(
             param: p,
             level: level,
@@ -416,9 +441,6 @@ class AlarmService extends ChangeNotifier {
           'ARGUS alarm: ${labelOf(p)}',
           '${_messageFor(p, level, v)} • ${formatValue(p, v)}',
         );
-        if (history.length > maxHistory) {
-          history.removeRange(maxHistory, history.length);
-        }
       }
     }
 

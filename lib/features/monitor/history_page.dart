@@ -341,7 +341,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${AlarmService.labelOf(e.param)} • ${e.valueText}',
+                  '${e.label} • ${e.valueText}',
                   style: TextStyle(
                     color: AppColors.text.withValues(alpha: .54),
                     fontSize: 12,
