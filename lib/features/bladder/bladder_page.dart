@@ -9,11 +9,11 @@ import '../../core/responsive.dart';
 import '../home/app_drawer.dart';
 import '../../core/app_colors.dart';
 
-const _blue = Color(0xFF54A9FF);
-const _cyan = Color(0xFF4FD8E8);
-const _green = Color(0xFF38E08F);
-const _amber = Color(0xFFFFB547);
-const _red = Color(0xFFE65F72);
+Color get _blue => AppColors.blue;
+Color get _cyan => AppColors.cyan;
+Color get _green => AppColors.green;
+Color get _amber => AppColors.amber;
+Color get _red => AppColors.red;
 
 // ---------------------------------------------------------------------------
 // Zones
@@ -1075,6 +1075,7 @@ class _MetricTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
       decoration: BoxDecoration(
         color: AppColors.card,
+        boxShadow: AppColors.cardShadow,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.text.withValues(alpha: .05)),
       ),
@@ -1224,6 +1225,7 @@ class _TrendCardState extends State<_TrendCard> {
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.card,
+        boxShadow: AppColors.cardShadow,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.text.withValues(alpha: .05)),
       ),
@@ -1461,7 +1463,7 @@ class _TrendPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [_red, _red, _amber, _amber, _blue, _cyan],
+          colors: [_red, _red, _amber, _amber, _blue, _cyan],
           stops: [0, ls, ls, as_, as_, 1],
         ).createShader(chart)
         ..strokeWidth = 2.6
@@ -1547,6 +1549,7 @@ class _ZoneLegend extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: AppColors.card,
+        boxShadow: AppColors.cardShadow,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.text.withValues(alpha: .05)),
       ),

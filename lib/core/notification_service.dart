@@ -73,7 +73,8 @@ class NotificationService with WidgetsBindingObserver {
           android: AndroidNotificationDetails(
             'argus_alarms',
             'Patient alarms',
-            channelDescription: 'Alerts when a vital sign leaves its safe range',
+            channelDescription:
+                'Alerts when a vital sign leaves its safe range',
             importance: Importance.max,
             priority: Priority.high,
             category: AndroidNotificationCategory.alarm,

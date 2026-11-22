@@ -123,9 +123,7 @@ class _WaveformCardState extends State<WaveformCard> {
                       Icon(
                         frozen ? Icons.play_arrow_rounded : Icons.pause_rounded,
                         size: 14,
-                        color: frozen
-                            ? const Color(0xFFFFB454)
-                            : widget.color,
+                        color: frozen ? const Color(0xFFFFB454) : widget.color,
                       ),
                       const SizedBox(width: 3),
                       Text(
@@ -172,7 +170,8 @@ class _WaveformCardState extends State<WaveformCard> {
                 DeviceService.instance,
               ]),
               builder: (context, _) {
-                final real = VitalsStore.instance.usingDevice &&
+                final real =
+                    VitalsStore.instance.usingDevice &&
                     DeviceService.instance.connected &&
                     EcgBuffer.instance.hasData;
                 if (real) {
@@ -304,7 +303,6 @@ class ECGPainter extends CustomPainter {
   }
 }
 
-
 /// Draws the real ECG samples sent by the ESP32 (latest [seconds] seconds).
 class RealEcgPainter extends CustomPainter {
   final Color color;
@@ -332,12 +330,18 @@ class RealEcgPainter extends CustomPainter {
       ..strokeWidth = 1;
     const small = 12.0;
     for (double x = 0; x <= size.width; x += small) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height),
-          (x / small) % 5 == 0 ? major : minor);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        (x / small) % 5 == 0 ? major : minor,
+      );
     }
     for (double y = 0; y <= size.height; y += small) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y),
-          (y / small) % 5 == 0 ? major : minor);
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        (y / small) % 5 == 0 ? major : minor,
+      );
     }
     if (samples.length < 2) return;
 

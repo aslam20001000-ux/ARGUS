@@ -6,9 +6,9 @@ import '../../core/app_colors.dart';
 import '../../core/ews.dart';
 import '../../core/vitals_store.dart';
 
-const _green = Color(0xFF38E08F);
-const _amber = Color(0xFFFFB454);
-const _red = Color(0xFFE65F72);
+Color get _green => AppColors.green;
+Color get _amber => AppColors.amber;
+Color get _red => AppColors.red;
 
 /// Ring showing the early-warning score of the current readings.
 class EwsCard extends StatelessWidget {

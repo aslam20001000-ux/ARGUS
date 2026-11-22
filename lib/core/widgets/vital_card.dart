@@ -79,7 +79,12 @@ class VitalCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: pulseBpm != null
-                    ? _PulsingIcon(icon: icon, size: 15, color: accent, bpm: pulseBpm!)
+                    ? _PulsingIcon(
+                        icon: icon,
+                        size: 15,
+                        color: accent,
+                        bpm: pulseBpm!,
+                      )
                     : Icon(icon, size: 15, color: accent),
               ),
               const SizedBox(width: 8),
@@ -141,7 +146,9 @@ class VitalCard extends StatelessWidget {
                         fontSize: 38,
                         height: 1,
                         fontWeight: FontWeight.w800,
-                        color: off ? AppColors.text.withValues(alpha: .35) : accent,
+                        color: off
+                            ? AppColors.text.withValues(alpha: .35)
+                            : accent,
                       ),
                     ),
                   ),

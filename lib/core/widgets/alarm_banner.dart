@@ -91,7 +91,6 @@ class AlarmBanner extends StatelessWidget {
   }
 }
 
-
 /// Strip at the bottom of every page while the ESP32 connection is lost.
 /// Readings are never invented: the screen shows "--" until the connection
 /// comes back (the red alarm banner and sound are handled by AlarmService).
@@ -115,12 +114,17 @@ class DeviceLostBanner extends StatelessWidget {
               elevation: 6,
               borderRadius: BorderRadius.circular(14),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.link_off_rounded,
-                        color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.link_off_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -128,7 +132,9 @@ class DeviceLostBanner extends StatelessWidget {
                             ? 'Connecting to the device…'
                             : 'Device disconnected – readings are not updating. Reconnecting…',
                         style: const TextStyle(
-                            color: Colors.white, fontSize: 12.5),
+                          color: Colors.white,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ),
                   ],

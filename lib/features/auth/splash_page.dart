@@ -31,9 +31,10 @@ class _SplashPageState extends State<SplashPage>
       duration: const Duration(milliseconds: 1500),
     )..forward();
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.8, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scale = Tween<double>(
+      begin: 0.8,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _go();
   }
 

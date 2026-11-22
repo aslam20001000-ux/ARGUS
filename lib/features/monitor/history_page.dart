@@ -8,10 +8,10 @@ import '../../core/settings_store.dart';
 import '../../core/vitals_store.dart';
 import 'trend_chart.dart';
 
-const _blue = Color(0xFF54A9FF);
-const _green = Color(0xFF38E08F);
-const _red = Color(0xFFE65F72);
-const _amber = Color(0xFFFFB454);
+Color get _blue => AppColors.blue;
+Color get _green => AppColors.green;
+Color get _red => AppColors.red;
+Color get _amber => AppColors.amber;
 
 /// Trends of every reading over the last minutes / hours, plus the alarm log.
 class HistoryPage extends StatefulWidget {
@@ -74,113 +74,148 @@ class _HistoryPageState extends State<HistoryPage> {
         return ContentFrame(
           maxWidth: 1100,
           child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'History',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: _exporting ? null : _export,
-                  icon: _exporting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                  label: const Text('PDF report'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (var i = 0; i < _ranges.length; i++)
-                  ChoiceChip(
-                    label: Text(_ranges[i].$1),
-                    selected: _rangeIndex == i,
-                    onSelected: (_) => setState(() => _rangeIndex = i),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (samples.length < 2)
-              _emptyCard()
-            else ...[
-              // 1 column on phones, 2 columns on wide screens.
-              AdaptiveGrid(
-                minTileWidth: 460,
-                maxColumns: 2,
+            padding: const EdgeInsets.all(18),
+            children: [
+              Row(
                 children: [
-                  _chartCard(AlarmParam.heartRate, samples, _blue, alarms, settings),
-                  _chartCard(AlarmParam.spo2, samples, _green, alarms, settings),
-                  _chartCard(AlarmParam.respRate, samples, _amber, alarms, settings),
-                  _chartCard(AlarmParam.temperature, samples, _red, alarms, settings),
-                  _chartCard(AlarmParam.bladder, samples, _blue, alarms, settings),
+                  const Expanded(
+                    child: Text(
+                      'History',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _exporting ? null : _export,
+                    icon: _exporting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                    label: const Text('PDF report'),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-            ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Alarm log',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                  ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (var i = 0; i < _ranges.length; i++)
+                    ChoiceChip(
+                      label: Text(_ranges[i].$1),
+                      selected: _rangeIndex == i,
+                      onSelected: (_) => setState(() => _rangeIndex = i),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (samples.length < 2)
+                _emptyCard()
+              else ...[
+                // 1 column on phones, 2 columns on wide screens.
+                AdaptiveGrid(
+                  minTileWidth: 460,
+                  maxColumns: 2,
+                  children: [
+                    _chartCard(
+                      AlarmParam.heartRate,
+                      samples,
+                      _blue,
+                      alarms,
+                      settings,
+                    ),
+                    _chartCard(
+                      AlarmParam.spo2,
+                      samples,
+                      _green,
+                      alarms,
+                      settings,
+                    ),
+                    _chartCard(
+                      AlarmParam.respRate,
+                      samples,
+                      _amber,
+                      alarms,
+                      settings,
+                    ),
+                    _chartCard(
+                      AlarmParam.temperature,
+                      samples,
+                      _red,
+                      alarms,
+                      settings,
+                    ),
+                    _chartCard(
+                      AlarmParam.bladder,
+                      samples,
+                      _blue,
+                      alarms,
+                      settings,
+                    ),
+                  ],
                 ),
-                Text(
-                  '${events.length} in this period',
-                  style: TextStyle(
-                    color: AppColors.text.withValues(alpha: .54),
-                    fontSize: 12,
-                  ),
-                ),
+                const SizedBox(height: 12),
               ],
-            ),
-            const SizedBox(height: 10),
-            if (events.isEmpty)
-              _card(
-                child: Text(
-                  'No alarms in this period.',
-                  style: TextStyle(color: AppColors.text.withValues(alpha: .54)),
-                ),
-              )
-            else
-              for (final e in events) _eventTile(e),
-          ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Alarm log',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${events.length} in this period',
+                    style: TextStyle(
+                      color: AppColors.text.withValues(alpha: .54),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (events.isEmpty)
+                _card(
+                  child: Text(
+                    'No alarms in this period.',
+                    style: TextStyle(
+                      color: AppColors.text.withValues(alpha: .54),
+                    ),
+                  ),
+                )
+              else
+                for (final e in events) _eventTile(e),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _card({
-    required Widget child,
-    Color? color,
-    bool spaced = true,
-  }) => Container(
-    width: double.infinity,
-    margin: EdgeInsets.only(bottom: spaced ? 12 : 0),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: color ?? AppColors.card,
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: child,
-  );
+  Widget _card({required Widget child, Color? color, bool spaced = true}) =>
+      Container(
+        width: double.infinity,
+        margin: EdgeInsets.only(bottom: spaced ? 12 : 0),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color ?? AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: child,
+      );
 
   Widget _emptyCard() => _card(
     child: Column(
       children: [
-        const Icon(Icons.show_chart, size: 46, color: _blue),
+        Icon(Icons.show_chart, size: 46, color: _blue),
         const SizedBox(height: 10),
         const Text(
           'Collecting data…',
@@ -228,8 +263,7 @@ class _HistoryPageState extends State<HistoryPage> {
         : null;
     final highLimit = limit.enabled ? conv(limit.high) : null;
 
-    String f(double? v) =>
-        showDouble(v, p == AlarmParam.temperature ? 1 : 0);
+    String f(double? v) => showDouble(v, p == AlarmParam.temperature ? 1 : 0);
     final unit = AlarmService.unitOf(p);
 
     return _card(
@@ -291,6 +325,7 @@ class _HistoryPageState extends State<HistoryPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.card,
+        boxShadow: AppColors.cardShadow,
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: color, width: 4)),
       ),

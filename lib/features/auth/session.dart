@@ -24,8 +24,7 @@ Future<void> startSession() async {
   await AlarmService.instance.loadLimits();
 
   // A profile that still has the demo name shows the signed-in person's name.
-  if (patientProfile.name.trim().isEmpty ||
-      patientProfile.name == 'John Doe') {
+  if (patientProfile.name.trim().isEmpty || patientProfile.name == 'John Doe') {
     patientProfile.name = AuthService.accountName;
     await ProfileStorage.save();
   }

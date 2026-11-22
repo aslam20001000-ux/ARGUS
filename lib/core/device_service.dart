@@ -84,7 +84,9 @@ class DeviceService extends ChangeNotifier {
     _setStatus(DeviceStatus.connecting);
 
     try {
-      final uri = Uri.parse('ws://${settings.deviceHost}:${settings.devicePort}');
+      final uri = Uri.parse(
+        'ws://${settings.deviceHost}:${settings.devicePort}',
+      );
       final channel = WebSocketChannel.connect(uri);
       _channel = channel;
       await channel.ready.timeout(const Duration(seconds: 5));
@@ -107,7 +109,8 @@ class DeviceService extends ChangeNotifier {
       _watchdog?.cancel();
       _watchdog = Timer.periodic(const Duration(seconds: 1), (_) {
         final last = lastMessage;
-        if (connected && last != null &&
+        if (connected &&
+            last != null &&
             DateTime.now().difference(last) > silenceLimit) {
           _lost('No data from the device');
         }

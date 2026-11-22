@@ -14,10 +14,10 @@ import '../monitor/monitor_home.dart';
 import '../profile/patient_profile_page.dart';
 import 'app_drawer.dart';
 
-const _blue = Color(0xFF54A9FF);
-const _green = Color(0xFF38E08F);
-const _red = Color(0xFFE65F72);
-const _amber = Color(0xFFFFB454);
+Color get _blue => AppColors.blue;
+Color get _green => AppColors.green;
+Color get _red => AppColors.red;
+Color get _amber => AppColors.amber;
 
 /// Home page: who is signed in, a live summary of the patient, the main
 /// features and quick shortcuts.
@@ -58,9 +58,7 @@ class FeatureSelectionPage extends StatelessWidget {
                       wide ? 28 : 18,
                       28,
                     ),
-                    children: wide
-                        ? _wideBody(context)
-                        : _phoneBody(context),
+                    children: wide ? _wideBody(context) : _phoneBody(context),
                   );
                 },
               ),
@@ -242,7 +240,7 @@ class FeatureSelectionPage extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                                  ],
+                ],
               ),
             ),
           ),
@@ -354,7 +352,9 @@ class FeatureSelectionPage extends StatelessWidget {
                       metric(
                         settings.tempSymbol,
                         showDouble(
-                          v.temp == null ? null : settings.toDisplayTemp(v.temp!),
+                          v.temp == null
+                              ? null
+                              : settings.toDisplayTemp(v.temp!),
                           1,
                         ),
                         AlarmParam.temperature,
@@ -535,7 +535,7 @@ class FeatureSelectionPage extends StatelessWidget {
                   ),
                   child: Text(
                     '$active',
-                    style:  TextStyle(
+                    style: TextStyle(
                       color: AppColors.text,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,

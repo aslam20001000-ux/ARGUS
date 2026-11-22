@@ -64,7 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '616416139930',
     projectId: 'argus-d5594',
     storageBucket: 'argus-d5594.firebasestorage.app',
-    iosClientId: '616416139930-237p6t8cgkndfsi0fgbdam236v2rdjnh.apps.googleusercontent.com',
+    iosClientId:
+        '616416139930-237p6t8cgkndfsi0fgbdam236v2rdjnh.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterApplication1',
   );
 
@@ -74,7 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '616416139930',
     projectId: 'argus-d5594',
     storageBucket: 'argus-d5594.firebasestorage.app',
-    iosClientId: '616416139930-237p6t8cgkndfsi0fgbdam236v2rdjnh.apps.googleusercontent.com',
+    iosClientId:
+        '616416139930-237p6t8cgkndfsi0fgbdam236v2rdjnh.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterApplication1',
   );
 

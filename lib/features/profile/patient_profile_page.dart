@@ -9,12 +9,12 @@ import '../../core/responsive.dart';
 import '../home/app_drawer.dart';
 import '../../core/app_colors.dart';
 
-const _blue = Color(0xFF54A9FF);
-const _cyan = Color(0xFF4FD8E8);
-const _green = Color(0xFF38E08F);
-const _amber = Color(0xFFFFB547);
-const _red = Color(0xFFE65F72);
-const _violet = Color(0xFF9B8CFF);
+Color get _blue => AppColors.blue;
+Color get _cyan => AppColors.cyan;
+Color get _green => AppColors.green;
+Color get _amber => AppColors.amber;
+Color get _red => AppColors.red;
+Color get _violet => AppColors.violet;
 
 class PatientProfilePage extends StatefulWidget {
   const PatientProfilePage({super.key});
@@ -551,17 +551,17 @@ class _HeroBanner extends StatelessWidget {
       width: wide ? 116 : 92,
       height: wide ? 116 : 92,
       padding: const EdgeInsets.all(3),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: SweepGradient(colors: [_cyan, _blue, _violet, _cyan]),
+        gradient: SweepGradient(colors: AppColors.heroRing),
       ),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1C4C7E), Color(0xFF0E2744)],
+            colors: AppColors.heroAvatar,
           ),
         ),
         child: Stack(
@@ -586,7 +586,7 @@ class _HeroBanner extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _green,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0E2744), width: 3),
+                  border: Border.all(color: AppColors.heroEdge, width: 3),
                 ),
               ),
             ),
@@ -637,11 +637,11 @@ class _HeroBanner extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF123A66), Color(0xFF0B2546), Color(0xFF0A1B33)],
+            colors: AppColors.heroGradient,
           ),
         ),
         child: Stack(
@@ -765,7 +765,13 @@ class _HeroChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color.withValues(alpha: .85)),
+          Icon(
+            icon,
+            size: 15,
+            color: AppColors.dark || color == Colors.white
+                ? color.withValues(alpha: .85)
+                : Color.lerp(color, Colors.white, .55),
+          ),
           const SizedBox(width: 7),
           Text(
             text,
@@ -806,9 +812,11 @@ class _MonitoringBadgeState extends State<_MonitoringBadge>
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 5, 11, 5),
       decoration: BoxDecoration(
-        color: _green.withValues(alpha: .14),
+        color: AppColors.dark ? _green.withValues(alpha: .14) : Colors.white,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: _green.withValues(alpha: .35)),
+        border: Border.all(
+          color: AppColors.dark ? _green.withValues(alpha: .35) : Colors.white,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -832,7 +840,7 @@ class _MonitoringBadgeState extends State<_MonitoringBadge>
                   Container(
                     width: 7,
                     height: 7,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: _green,
                       shape: BoxShape.circle,
                     ),
@@ -842,7 +850,7 @@ class _MonitoringBadgeState extends State<_MonitoringBadge>
             ),
           ),
           const SizedBox(width: 6),
-          const Text(
+          Text(
             'UNDER MONITORING',
             style: TextStyle(
               color: _green,
@@ -922,7 +930,7 @@ class _BodyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.accessibility_new_rounded,
             color: _cyan,
             title: 'Body metrics',
@@ -1044,7 +1052,7 @@ class _BmiGauge extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           gradient: LinearGradient(
-                            colors: const [_cyan, _green, _green, _amber, _red],
+                            colors: [_cyan, _green, _green, _amber, _red],
                             stops: [
                               pos(17),
                               pos(19.5),
@@ -1137,7 +1145,7 @@ class _MedicalRecordCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.medical_information_rounded,
             color: _amber,
             title: 'Medical record',
@@ -1255,6 +1263,7 @@ class _RecordBlock extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.card,
+                            boxShadow: AppColors.cardShadow,
                             borderRadius: BorderRadius.circular(pill ? 30 : 10),
                             border: Border.all(
                               color: color.withValues(alpha: .3),
@@ -1358,7 +1367,7 @@ class _CareTeamCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.groups_rounded,
             color: _blue,
             title: 'Care team',
@@ -1369,7 +1378,7 @@ class _CareTeamCard extends StatelessWidget {
               width: 46,
               height: 46,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(colors: [_blue, _violet]),
               ),
@@ -1396,7 +1405,7 @@ class _CareTeamCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: _red.withValues(alpha: .14),
               ),
-              child: const Icon(Icons.emergency_rounded, color: _red),
+              child: Icon(Icons.emergency_rounded, color: _red),
             ),
             label: 'Emergency contact',
             value: p.emergencyContact,
@@ -1423,7 +1432,7 @@ class _NotesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.sticky_note_2_rounded,
             color: _green,
             title: 'Clinical notes',

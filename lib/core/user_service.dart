@@ -111,9 +111,7 @@ class UserService {
           role: UserRole.parse(d.data()['role']),
         ),
     ];
-    list.sort(
-      (a, b) => a.email.toLowerCase().compareTo(b.email.toLowerCase()),
-    );
+    list.sort((a, b) => a.email.toLowerCase().compareTo(b.email.toLowerCase()));
     return list;
   }
 

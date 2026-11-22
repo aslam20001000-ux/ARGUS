@@ -9,7 +9,7 @@ import '../../core/vitals_store.dart';
 import 'login_page.dart';
 import '../../core/app_colors.dart';
 
-const _red = Color(0xFFE65F72);
+Color get _red => AppColors.red;
 
 /// Asks for confirmation, then stops the monitoring, signs out of Firebase and
 /// goes back to the login page. Used by the side menu and the Settings page.
@@ -23,7 +23,7 @@ Future<void> confirmLogout(BuildContext context) async {
         'Log out',
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
-      content:  Text(
+      content: Text(
         'Are you sure you want to log out?',
         style: TextStyle(color: AppColors.text.withValues(alpha: .7)),
       ),

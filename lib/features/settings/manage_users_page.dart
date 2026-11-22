@@ -103,6 +103,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> {
       padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.card,
+        boxShadow: AppColors.cardShadow,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

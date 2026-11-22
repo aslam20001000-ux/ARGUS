@@ -167,12 +167,14 @@ class VitalsStore {
       _impedance = 40;
     }
 
-    _publish(VitalsData(
-      hr: 72 + _random.nextInt(15),
-      spo2: 96 + _random.nextInt(4),
-      rr: 14 + _random.nextInt(6),
-      temp: 36.4 + _random.nextDouble() * 0.8,
-      impedance: _impedance,
-    ));
+    _publish(
+      VitalsData(
+        hr: 72 + _random.nextInt(15),
+        spo2: 96 + _random.nextInt(4),
+        rr: 14 + _random.nextInt(6),
+        temp: 36.4 + _random.nextDouble() * 0.8,
+        impedance: _impedance,
+      ),
+    );
   }
 }

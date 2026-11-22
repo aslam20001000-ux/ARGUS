@@ -80,10 +80,9 @@ class _MyAppState extends State<MyApp> {
       builder: (context, child) => MediaQuery(
         // Huge system font sizes broke the layouts: keep text near normal.
         data: MediaQuery.of(context).copyWith(
-          textScaler: MediaQuery.of(context).textScaler.clamp(
-            minScaleFactor: 0.9,
-            maxScaleFactor: 1.1,
-          ),
+          textScaler: MediaQuery.of(
+            context,
+          ).textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.1),
         ),
         child: Stack(
           fit: StackFit.expand,

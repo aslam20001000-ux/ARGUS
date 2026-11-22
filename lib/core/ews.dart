@@ -93,7 +93,11 @@ class Ews {
 
     final parts = [
       EwsPart('HR', hr == null ? '--' : '$hr', hr == null ? 0 : _hrPoints(hr)),
-      EwsPart('SpO₂', sp == null ? '--' : '$sp%', sp == null ? 0 : _spPoints(sp)),
+      EwsPart(
+        'SpO₂',
+        sp == null ? '--' : '$sp%',
+        sp == null ? 0 : _spPoints(sp),
+      ),
       EwsPart('RR', rr == null ? '--' : '$rr', rr == null ? 0 : _rrPoints(rr)),
       EwsPart(
         'Temp',

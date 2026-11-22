@@ -15,12 +15,12 @@ import '../profile/patient_profile_page.dart';
 import 'ews_card.dart';
 import 'vital_detail_sheet.dart';
 
-const _green = Color(0xFF38E08F);
-const _red = Color(0xFFE65F72);
-const _amber = Color(0xFFFFB454);
-const _cyan = Color(0xFF54C8FF);
-const _orange = Color(0xFFFF8A65);
-const _blue = Color(0xFF54A9FF);
+Color get _green => AppColors.green;
+Color get _red => AppColors.red;
+Color get _amber => AppColors.amber;
+Color get _cyan => AppColors.cyan;
+Color get _orange => AppColors.orange;
+Color get _blue => AppColors.blue;
 
 /// Bedside-monitor style overview: patient strip, big ECG trace and one card
 /// per reading (with a short trend line and its alarm limits).
@@ -170,10 +170,7 @@ class DashboardPage extends StatelessWidget {
 
               // Phone: 2 cards per row. Tablet: 4 in a row. Desktop: all 5.
               final Widget tiles = w >= 900
-                  ? AdaptiveGrid(
-                      columns: 5,
-                      children: [hr, sp, rr, tp, bl],
-                    )
+                  ? AdaptiveGrid(columns: 5, children: [hr, sp, rr, tp, bl])
                   : Column(
                       children: [
                         AdaptiveGrid(
@@ -273,7 +270,7 @@ class DashboardPage extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: _blue.withValues(alpha: .15),
-                child: const Icon(Icons.person, color: _blue, size: 27),
+                child: Icon(Icons.person, color: _blue, size: 27),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -333,8 +330,11 @@ class DashboardPage extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 6),
                         child: DeviceService.instance.connected
                             ? _pill('LIVE DEVICE', _green)
-                            : _pill('DEVICE LOST', _red,
-                                icon: Icons.link_off_rounded),
+                            : _pill(
+                                'DEVICE LOST',
+                                _red,
+                                icon: Icons.link_off_rounded,
+                              ),
                       ),
                     ),
                 ],

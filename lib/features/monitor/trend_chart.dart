@@ -114,11 +114,16 @@ class _TrendPainter extends CustomPainter {
       tp.paint(canvas, rightAlign ? Offset(at.dx - tp.width, at.dy) : at);
     }
 
-    label(maxV.toStringAsFixed(decimals), Offset(leftPad - 4, plot.top - 2),
-        rightAlign: true);
-    label(minV.toStringAsFixed(decimals),
-        Offset(leftPad - 4, plot.bottom - 10),
-        rightAlign: true);
+    label(
+      maxV.toStringAsFixed(decimals),
+      Offset(leftPad - 4, plot.top - 2),
+      rightAlign: true,
+    );
+    label(
+      minV.toStringAsFixed(decimals),
+      Offset(leftPad - 4, plot.bottom - 10),
+      rightAlign: true,
+    );
     label(_rangeText(range), Offset(plot.left, plot.bottom + 3));
     label('now', Offset(plot.right, plot.bottom + 3), rightAlign: true);
 

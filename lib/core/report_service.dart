@@ -52,19 +52,18 @@ class ReportService {
       ),
     );
 
-    pw.Widget table(List<String> headers, List<List<String>> rows) =>
-        pw.TableHelper.fromTextArray(
-          headers: headers,
-          data: rows,
-          headerStyle: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            fontSize: 10,
-          ),
-          cellStyle: const pw.TextStyle(fontSize: 10),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-          cellAlignment: pw.Alignment.centerLeft,
-          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-        );
+    pw.Widget table(
+      List<String> headers,
+      List<List<String>> rows,
+    ) => pw.TableHelper.fromTextArray(
+      headers: headers,
+      data: rows,
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+      cellStyle: const pw.TextStyle(fontSize: 10),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+      cellAlignment: pw.Alignment.centerLeft,
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+    );
 
     String temp(double? c) =>
         showDouble(c == null ? null : settings.toDisplayTemp(c), 1);
@@ -99,8 +98,7 @@ class ReportService {
       }
       // Only the samples that have a reading for this parameter.
       final values = [
-        for (final s in samples)
-          ?AlarmService.valueOf(param, s.data),
+        for (final s in samples) ?AlarmService.valueOf(param, s.data),
       ];
       if (values.isEmpty) {
         stats.add([
@@ -187,10 +185,14 @@ class ReportService {
             ],
           ),
           heading('Statistics (last $rangeLabel, ${samples.length} readings)'),
-          table(
-            ['Parameter', 'Min', 'Average', 'Max', 'Alarm limits', 'Unit'],
-            stats,
-          ),
+          table([
+            'Parameter',
+            'Min',
+            'Average',
+            'Max',
+            'Alarm limits',
+            'Unit',
+          ], stats),
           heading('Alarm log (${events.length})'),
           if (events.isEmpty)
             pw.Text(

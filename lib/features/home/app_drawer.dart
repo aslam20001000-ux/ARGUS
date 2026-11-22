@@ -11,8 +11,8 @@ import '../profile/patient_profile_page.dart';
 import '../settings/settings_page.dart';
 import '../../core/app_colors.dart';
 
-const _blue = Color(0xFF54A9FF);
-const _red = Color(0xFFE65F72);
+Color get _blue => AppColors.blue;
+Color get _red => AppColors.red;
 
 /// The pages that can be opened from the side menu.
 enum AppSection { home, monitor, bladder, profile }
@@ -82,12 +82,7 @@ class AppDrawer extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 children: [
                   _sectionLabel('FEATURES'),
-                  _item(
-                    context,
-                    Icons.apps_rounded,
-                    'Home',
-                    AppSection.home,
-                  ),
+                  _item(context, Icons.apps_rounded, 'Home', AppSection.home),
                   _item(
                     context,
                     Icons.monitor_heart,
@@ -109,7 +104,7 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
-             Divider(color: AppColors.text.withValues(alpha: .12), height: 1),
+            Divider(color: AppColors.text.withValues(alpha: .12), height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
@@ -129,8 +124,8 @@ class AppDrawer extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    leading: const Icon(Icons.logout_rounded, color: _red),
-                    title: const Text(
+                    leading: Icon(Icons.logout_rounded, color: _red),
+                    title: Text(
                       'Log out',
                       style: TextStyle(
                         color: _red,
@@ -153,7 +148,7 @@ class AppDrawer extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
-        gradient:  LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.cardAlt, AppColors.nav],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -181,7 +176,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-           Text(
+          Text(
             'ARGUS',
             style: TextStyle(
               fontSize: 13,
@@ -212,9 +207,12 @@ class AppDrawer extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     AuthService.email,
-                    style:  TextStyle(color: AppColors.text.withValues(alpha: .54), fontSize: 12),
+                    style: TextStyle(
+                      color: AppColors.text.withValues(alpha: .54),
+                      fontSize: 12,
+                    ),
                   ),
-                                  ],
+                ],
               );
             },
           ),
@@ -228,7 +226,7 @@ class AppDrawer extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
       child: Text(
         text,
-        style:  TextStyle(
+        style: TextStyle(
           color: AppColors.text.withValues(alpha: .38),
           fontSize: 11,
           fontWeight: FontWeight.w800,
