@@ -10,6 +10,7 @@ import '../../core/page_route.dart';
 import '../../core/responsive.dart';
 import '../../core/settings_store.dart';
 import '../../core/vitals_store.dart';
+import '../../core/widgets/sparkline.dart';
 import '../bladder/bladder_page.dart';
 import '../monitor/monitor_home.dart';
 import '../profile/patient_profile_page.dart';
@@ -301,6 +302,13 @@ class _PatientHero extends StatelessWidget {
 
         bool bad(AlarmParam param) => alarms.levels[param] != AlarmLevel.normal;
 
+        // Last 30 minutes of saved readings for the small trend lines.
+        final recent = store.samplesWithin(const Duration(minutes: 30));
+        List<double> trend(num? Function(VitalsData d) pick) => _smooth([
+          for (final s in recent)
+            if (pick(s.data) case final x?) x.toDouble(),
+        ]);
+
         final vitals = [
           _HeroVital(
             icon: Icons.favorite_rounded,
@@ -308,6 +316,8 @@ class _PatientHero extends StatelessWidget {
             value: showInt(v.hr),
             unit: 'bpm',
             alarm: bad(AlarmParam.heartRate),
+            trend: trend((d) => d.hr),
+            expand: wide,
           ),
           _HeroVital(
             icon: Icons.water_drop_rounded,
@@ -315,6 +325,8 @@ class _PatientHero extends StatelessWidget {
             value: showInt(v.spo2),
             unit: '%',
             alarm: bad(AlarmParam.spo2),
+            trend: trend((d) => d.spo2),
+            expand: wide,
           ),
           _HeroVital(
             icon: Icons.air_rounded,
@@ -322,6 +334,8 @@ class _PatientHero extends StatelessWidget {
             value: showInt(v.rr),
             unit: '/min',
             alarm: bad(AlarmParam.respRate),
+            trend: trend((d) => d.rr),
+            expand: wide,
           ),
           _HeroVital(
             icon: Icons.thermostat_rounded,
@@ -332,6 +346,8 @@ class _PatientHero extends StatelessWidget {
             ),
             unit: settings.tempSymbol,
             alarm: bad(AlarmParam.temperature),
+            trend: trend((d) => d.temp),
+            expand: wide,
           ),
         ];
 
@@ -472,17 +488,23 @@ class _PatientHero extends StatelessWidget {
                   // with IntrinsicHeight.)
                   for (var r = 0; r < vitals.length; r += perRow) ...[
                     if (r > 0) const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        for (var i = r; i < r + perRow; i++) ...[
-                          if (i > r) const SizedBox(width: 10),
-                          Expanded(child: vitals[i]),
+                    _maybeExpanded(
+                      wide,
+                      Row(
+                        // Stretch only when the height is bounded (wide layout).
+                        crossAxisAlignment: wide
+                            ? CrossAxisAlignment.stretch
+                            : CrossAxisAlignment.start,
+                        children: [
+                          for (var i = r; i < r + perRow; i++) ...[
+                            if (i > r) const SizedBox(width: 10),
+                            Expanded(child: vitals[i]),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ],
-                  if (wide) const Spacer() else const SizedBox(height: 16),
-                  if (wide) const SizedBox(height: 18),
+                  SizedBox(height: wide ? 18 : 16),
 
                   // ----- early warning score + open monitor
                   _EwsBar(ews: ews),
@@ -496,12 +518,36 @@ class _PatientHero extends StatelessWidget {
   }
 }
 
+/// Averages [values] down to at most [points] so a small trend line shows
+/// the direction instead of every second-to-second wiggle.
+List<double> _smooth(List<double> values, {int points = 30}) {
+  if (values.length <= points) return values;
+  final size = values.length / points;
+  return [
+    for (var i = 0; i < points; i++)
+      () {
+        final from = (i * size).floor();
+        final to = ((i + 1) * size).floor().clamp(from + 1, values.length);
+        final part = values.sublist(from, to);
+        return part.reduce((a, b) => a + b) / part.length;
+      }(),
+  ];
+}
+
+/// On wide screens the vitals row fills the hero card's free height.
+Widget _maybeExpanded(bool expand, Widget child) =>
+    expand ? Expanded(child: child) : child;
+
 class _HeroVital extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final String unit;
   final bool alarm;
+  final List<double> trend;
+
+  /// True when the tile is stretched to a taller height (wide layout).
+  final bool expand;
 
   const _HeroVital({
     required this.icon,
@@ -509,6 +555,8 @@ class _HeroVital extends StatelessWidget {
     required this.value,
     required this.unit,
     required this.alarm,
+    this.trend = const [],
+    this.expand = false,
   });
 
   @override
@@ -575,6 +623,31 @@ class _HeroVital extends StatelessWidget {
               ),
             ),
           ),
+          // Trend line: fills the free height on wide screens.
+          if (expand)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 24),
+                  child: Sparkline(
+                    values: trend,
+                    color: Colors.white.withValues(alpha: .85),
+                  ),
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(
+                height: 24,
+                child: Sparkline(
+                  values: trend,
+                  color: Colors.white.withValues(alpha: .85),
+                ),
+              ),
+            ),
         ],
       ),
     );
