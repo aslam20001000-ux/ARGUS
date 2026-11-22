@@ -33,8 +33,11 @@ class EwsCard extends StatelessWidget {
         color: r.risk == EwsRisk.high ? AppColors.alarmCard : AppColors.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: color.withValues(alpha: r.risk == EwsRisk.low ? .2 : .6),
+          color: r.risk == EwsRisk.low
+              ? AppColors.border
+              : color.withValues(alpha: .6),
         ),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
@@ -156,7 +159,7 @@ class EwsCard extends StatelessWidget {
   static Color _partColor(int points) => switch (points) {
     0 => _green,
     1 => _amber,
-    2 => const Color(0xFFFF8A65),
+    2 => AppColors.orange,
     _ => _red,
   };
 }

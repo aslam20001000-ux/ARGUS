@@ -11,6 +11,7 @@ import '../../core/responsive.dart';
 import '../../core/settings_store.dart';
 import '../../core/vitals_store.dart';
 import '../../core/widgets/sparkline.dart';
+import '../../core/widgets/ui.dart';
 import '../bladder/bladder_page.dart';
 import '../monitor/monitor_home.dart';
 import '../profile/patient_profile_page.dart';
@@ -1043,170 +1044,28 @@ class _SectionLabel extends StatelessWidget {
 class _RecentAlarms extends StatelessWidget {
   const _RecentAlarms();
 
-  static String _ago(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inMinutes < 1) return tr('just now', 'الآن');
-    final m = d.inMinutes;
-    if (m < 60) return tr('$m min ago', 'منذ $m د');
-    if (d.inHours < 24) return tr('${d.inHours} h ago', 'منذ ${d.inHours} س');
-    return tr('${d.inDays} d ago', 'منذ ${d.inDays} يوم');
-  }
-
-  static IconData _icon(AlarmParam? p) => switch (p) {
-    null => Icons.wifi_off_rounded,
-    AlarmParam.heartRate => Icons.favorite_rounded,
-    AlarmParam.spo2 => Icons.water_drop_rounded,
-    AlarmParam.respRate => Icons.air_rounded,
-    AlarmParam.temperature => Icons.thermostat_rounded,
-    AlarmParam.ecg => Icons.monitor_heart_rounded,
-    AlarmParam.bladder => Icons.opacity_rounded,
-  };
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: AlarmService.instance,
-      builder: (context, _) {
-        final events = AlarmService.instance.history.take(3).toList();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _SectionLabel(
-              en: 'Recent alarms',
-              ar: 'آخر التنبيهات',
-              action: TextButton(
-                onPressed: () =>
-                    _open(context, const MonitorHome(initialIndex: 1)),
-                child: Text(tr('View all', 'عرض الكل')),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-                boxShadow: AppColors.cardShadow,
-              ),
-              child: events.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 22,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: _green.withValues(alpha: .13),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.verified_rounded,
-                              color: _green,
-                              size: 21,
-                            ),
-                          ),
-                          const SizedBox(width: 13),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tr('No alarms so far', 'لا توجد تنبيهات'),
-                                  style: const TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  tr(
-                                    'Every reading has stayed inside its limits.',
-                                    'كل القراءات داخل الحدود.',
-                                  ),
-                                  style: TextStyle(
-                                    color: AppColors.text.withValues(
-                                      alpha: .55,
-                                    ),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        for (var i = 0; i < events.length; i++) ...[
-                          if (i > 0)
-                            Divider(
-                              height: 1,
-                              indent: 66,
-                              endIndent: 16,
-                              color: AppColors.border,
-                            ),
-                          _alarmRow(events[i]),
-                        ],
-                      ],
-                    ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _alarmRow(AlarmEvent e) {
-    final color = e.level == AlarmLevel.low ? _amber : _red;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .13),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_icon(e.param), color: color, size: 19),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  e.message,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _ago(e.time),
-                  style: TextStyle(
-                    color: AppColors.text.withValues(alpha: .5),
-                    fontSize: 11.5,
-                  ),
-                ),
-              ],
+          _SectionLabel(
+            en: 'Recent alarms',
+            ar: 'آخر التنبيهات',
+            action: TextButton(
+              onPressed: () =>
+                  _open(context, const MonitorHome(initialIndex: 1)),
+              child: Text(tr('View all', 'عرض الكل')),
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            e.valueText,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+          AlarmLogCard(
+            events: AlarmService.instance.history.take(3).toList(),
+            emptyTitle: tr('No alarms so far', 'لا توجد تنبيهات'),
+            emptyText: tr(
+              'Every reading has stayed inside its limits.',
+              'كل القراءات داخل الحدود.',
             ),
           ),
         ],

@@ -69,6 +69,7 @@ class _WaveformCardState extends State<WaveformCard> {
         color: AppColors.ecgBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: widget.color.withValues(alpha: .25)),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +114,7 @@ class _WaveformCardState extends State<WaveformCard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (frozen ? const Color(0xFFFFB454) : widget.color)
+                    color: (frozen ? AppColors.amber : widget.color)
                         .withValues(alpha: .14),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -123,7 +124,7 @@ class _WaveformCardState extends State<WaveformCard> {
                       Icon(
                         frozen ? Icons.play_arrow_rounded : Icons.pause_rounded,
                         size: 14,
-                        color: frozen ? const Color(0xFFFFB454) : widget.color,
+                        color: frozen ? AppColors.amber : widget.color,
                       ),
                       const SizedBox(width: 3),
                       Text(
@@ -132,7 +133,7 @@ class _WaveformCardState extends State<WaveformCard> {
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
                           color: frozen
-                              ? const Color(0xFFFFB454)
+                              ? AppColors.amber
                               : widget.color,
                         ),
                       ),

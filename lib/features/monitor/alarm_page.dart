@@ -1,32 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../core/responsive.dart';
-
 import '../../core/alarm_service.dart';
+import '../../core/app_colors.dart';
+import '../../core/responsive.dart';
 import '../../core/settings_store.dart';
 import '../../core/vitals_store.dart';
-import '../../core/app_colors.dart';
+import '../../core/widgets/ui.dart';
 
 Color get _green => AppColors.green;
 Color get _red => AppColors.red;
 Color get _blue => AppColors.blue;
 Color get _card => AppColors.card;
 
-IconData _iconOf(AlarmParam? p) => switch (p) {
-  null => Icons.wifi_off,
-  AlarmParam.heartRate => Icons.favorite,
-  AlarmParam.spo2 => Icons.air,
-  AlarmParam.respRate => Icons.waves,
-  AlarmParam.temperature => Icons.thermostat,
-  AlarmParam.ecg => Icons.monitor_heart,
-  AlarmParam.bladder => Icons.water_drop,
-};
-
-String _two(int n) => n.toString().padLeft(2, '0');
-
-String _time(DateTime t) =>
-    '${_two(t.hour)}:${_two(t.minute)}:${_two(t.second)}';
-
+/// Live alarm status, the limits of every monitored signal and the alarm log.
 class AlarmPage extends StatelessWidget {
   /// Hide the big "Alarms" title when the page is opened from Settings (the
   /// app bar already shows a title there).
@@ -44,123 +30,122 @@ class AlarmPage extends StatelessWidget {
         final v = VitalsStore.instance.vitals.value;
 
         return ContentFrame(
-          maxWidth: 1000,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (showHeader) ...[
-                  const Text(
-                    'Alarms',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Live status and limits for every monitored signal',
-                    style: TextStyle(
-                      color: AppColors.text.withValues(alpha: .54),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+          maxWidth: 1100,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),
+            children: [
+              if (showHeader)
+                const PageHeader(
+                  title: 'Alarms',
+                  subtitle: 'Live status and limits for every monitored signal',
+                ),
+              _StatusHero(service: service),
+              const SectionHeading('Alarm limits'),
+              // 1 column on phones, 2 on tablets, 3 on wide screens.
+              AdaptiveGrid(
+                minTileWidth: 330,
+                maxColumns: 3,
+                children: [
+                  for (final p in AlarmParam.values)
+                    _LimitCard(param: p, vitals: v),
                 ],
-
-                _statusBanner(service),
-
-                const SizedBox(height: 24),
-                const Text(
-                  'Alarm Limits',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-
-                // 1 column on phones, 2 columns on wide screens.
-                AdaptiveGrid(
-                  minTileWidth: 420,
-                  maxColumns: 2,
-                  children: [
-                    for (final p in AlarmParam.values)
-                      _paramCard(context, service, p, v),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Alarm History',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
+              ),
+              SectionHeading(
+                'Alarm log',
+                action: service.history.isEmpty
+                    ? null
+                    : TextButton.icon(
+                        onPressed: () => _confirmClear(context, service),
+                        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                        label: const Text('Clear'),
                       ),
-                    ),
-                    if (service.history.isNotEmpty)
-                      TextButton(
-                        onPressed: service.clearHistory,
-                        child: const Text('Clear'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                if (service.history.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: _card,
-                      boxShadow: AppColors.cardShadow,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.history,
-                          color: AppColors.text.withValues(alpha: .54),
-                          size: 28,
-                        ),
-                        SizedBox(width: 14),
-                        Text(
-                          'No previous alarms',
-                          style: TextStyle(
-                            color: AppColors.text.withValues(alpha: .54),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  for (final e in service.history) _historyTile(e),
-              ],
-            ),
+              ),
+              AlarmLogCard(
+                events: service.history,
+                showClock: true,
+                emptyTitle: 'No alarms so far',
+                emptyText: 'Every alarm that starts is listed here.',
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _statusBanner(AlarmService service) {
-    final active = service.activeParams;
+  Future<void> _confirmClear(BuildContext context, AlarmService service) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Clear the alarm log?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'All ${service.history.length} entries will be removed. Active '
+          'alarms are not affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: _red),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) service.clearHistory();
+  }
+}
+
+// ============================================================ status hero
+
+class _StatusHero extends StatelessWidget {
+  final AlarmService service;
+  const _StatusHero({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
     final count = service.activeCount; // includes "device disconnected"
     final ok = count == 0;
-    final color = ok ? _green : _red;
+    final names = [
+      if (service.deviceLost) 'Device disconnected',
+      ...service.activeParams.map(AlarmService.labelOf),
+    ];
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: .35)),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: ok
+              ? AppColors.heroGradient
+              : const [Color(0xFFB8324A), Color(0xFF8E2238), Color(0xFF5E1627)],
+        ),
       ),
       child: Row(
         children: [
-          Icon(
-            ok ? Icons.check_circle : Icons.warning_amber_rounded,
-            color: color,
-            size: 30,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: .16),
+              border: Border.all(color: Colors.white.withValues(alpha: .3)),
+            ),
+            child: Icon(
+              ok ? Icons.verified_rounded : Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 27,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -169,170 +154,209 @@ class AlarmPage extends StatelessWidget {
               children: [
                 Text(
                   ok
-                      ? 'System Normal'
+                      ? 'All clear'
                       : '$count active alarm${count == 1 ? '' : 's'}',
                   style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  ok
-                      ? 'No active alarms'
-                      : [
-                          if (service.deviceLost) 'Device disconnected',
-                          ...active.map(AlarmService.labelOf),
-                        ].join('  •  '),
-                  style: TextStyle(
-                    color: AppColors.text.withValues(alpha: .6),
-                    fontSize: 13,
+                if (ok)
+                  Text(
+                    'Every enabled signal is inside its limits.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .75),
+                      fontSize: 13,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final n in names)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .18),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            n,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
               ],
             ),
           ),
           if (!ok) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             service.silenced
-                ? const Chip(
-                    avatar: Icon(Icons.volume_off, size: 16),
-                    label: Text('Silenced'),
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .2),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.volume_off, size: 16, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text(
+                          'Silenced',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   )
-                : TextButton.icon(
+                : FilledButton.icon(
                     onPressed: service.silence,
-                    style: TextButton.styleFrom(foregroundColor: _red),
-                    icon: const Icon(Icons.volume_off, size: 18),
-                    label: const Text('Silence'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF8E2238),
+                    ),
+                    icon: const Icon(Icons.volume_off_rounded, size: 18),
+                    label: const Text('Silence 2 min'),
                   ),
           ],
         ],
       ),
     );
   }
+}
 
-  String _limitText(AlarmParam p, AlarmLimit limit) {
+// ============================================================= limit card
+
+class _LimitCard extends StatelessWidget {
+  final AlarmParam param;
+  final VitalsData vitals;
+
+  const _LimitCard({required this.param, required this.vitals});
+
+  String _limitText(AlarmLimit limit) {
+    final p = param;
     if (p == AlarmParam.ecg) return 'Lead connection & rhythm';
     final unit = AlarmService.unitOf(p);
     final high = AlarmService.formatNumber(p, limit.high);
-    if (p == AlarmParam.bladder) return 'High limit: $high $unit';
+    if (p == AlarmParam.bladder) return 'Alarm above $high $unit';
     final low = AlarmService.formatNumber(p, limit.low);
-    return 'Limits: $low – $high $unit';
+    return 'Safe range $low – $high $unit';
   }
 
-  Widget _paramCard(
-    BuildContext context,
-    AlarmService service,
-    AlarmParam p,
-    VitalsData v,
-  ) {
+  @override
+  Widget build(BuildContext context) {
+    final service = AlarmService.instance;
+    final p = param;
     final limit = service.limits[p]!;
     final level = service.levels[p]!;
     final enabled = limit.enabled;
     final active = enabled && level != AlarmLevel.normal;
-    final accent = !enabled
-        ? AppColors.text.withValues(alpha: .38)
+    final status = service.statusLabel(p);
+    final noData = status == 'NO DATA';
+    final accent = !enabled || noData
+        ? AppColors.text.withValues(alpha: .4)
         : active
         ? _red
         : _green;
+    final value = AlarmService.valueOf(p, vitals);
 
-    final chipText = service.statusLabel(p);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _card,
-        boxShadow: AppColors.cardShadow,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: active
-              ? _red.withValues(alpha: .45)
-              : AppColors.text.withValues(alpha: .06),
-        ),
-      ),
+    return AppCard(
+      color: active ? AppColors.alarmCard : null,
+      borderColor: active ? _red.withValues(alpha: .5) : null,
+      padding: const EdgeInsets.fromLTRB(16, 14, 10, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(_iconOf(p), color: accent, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AlarmService.labelOf(p),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _limitText(p, limit),
-                      style: TextStyle(
-                        color: AppColors.text.withValues(alpha: .54),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch(
-                value: enabled,
-                onChanged: (value) => service.setEnabled(p, value),
-              ),
-            ],
+          CardTitle(
+            icon: alarmIcon(p),
+            color: enabled ? (active ? _red : _blue) : accent,
+            title: AlarmService.labelOf(p),
+            subtitle: _limitText(limit),
+            trailing: Switch(
+              value: enabled,
+              onChanged: (value) => service.setEnabled(p, value),
+            ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Text(
-                AlarmService.formatValue(p, v),
-                style: TextStyle(
-                  fontSize: p == AlarmParam.ecg ? 22 : 26,
-                  fontWeight: FontWeight.bold,
-                  color: enabled
-                      ? AppColors.text
-                      : AppColors.text.withValues(alpha: .38),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      AlarmService.formatValue(p, vitals),
+                      style: TextStyle(
+                        fontSize: p == AlarmParam.ecg ? 20 : 24,
+                        fontWeight: FontWeight.w900,
+                        color: enabled && !noData
+                            ? AppColors.text
+                            : AppColors.text.withValues(alpha: .38),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  chipText,
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 8),
+                StatusPill(status, color: accent),
+              ],
+            ),
+          ),
+          if (p != AlarmParam.ecg) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 6),
+              child: SizedBox(
+                height: 14,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _RangePainter(
+                    param: p,
+                    low: p == AlarmParam.bladder ? null : limit.low,
+                    high: limit.high,
+                    value: value,
+                    enabled: enabled,
+                    track: AppColors.chip,
+                    safe: _green.withValues(alpha: .35),
+                    marker: active ? _red : AppColors.text,
+                    rtl: Directionality.of(context) == TextDirection.rtl,
                   ),
                 ),
               ),
-              if (p != AlarmParam.ecg) ...[
-                const SizedBox(width: 6),
-                IconButton(
-                  tooltip: 'Edit limits',
-                  onPressed: () => _editLimits(context, service, p),
-                  icon: const Icon(Icons.tune),
-                  color: _blue,
+            ),
+            const SizedBox(height: 2),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton.icon(
+                onPressed: () => _editLimits(context, service, p),
+                icon: const Icon(Icons.tune_rounded, size: 17),
+                label: const Text('Edit limits'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -352,55 +376,85 @@ class AlarmPage extends StatelessWidget {
       service.setLimits(p, result.low, result.high);
     }
   }
+}
 
-  Widget _historyTile(AlarmEvent e) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _card,
-          boxShadow: AppColors.cardShadow,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(_iconOf(e.param), color: _red, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    e.message,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    e.valueText,
-                    style: TextStyle(
-                      color: AppColors.text.withValues(alpha: .54),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              _time(e.time),
-              style: TextStyle(
-                color: AppColors.text.withValues(alpha: .38),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
+/// Horizontal bar over the allowed range of a signal: the safe band between
+/// the limits and a dot for the current reading.
+class _RangePainter extends CustomPainter {
+  final AlarmParam param;
+  final double? low;
+  final double high;
+  final double? value;
+  final bool enabled;
+  final Color track;
+  final Color safe;
+  final Color marker;
+  final bool rtl;
+
+  _RangePainter({
+    required this.param,
+    required this.low,
+    required this.high,
+    required this.value,
+    required this.enabled,
+    required this.track,
+    required this.safe,
+    required this.marker,
+    required this.rtl,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final range = AlarmService.allowedRange[param];
+    if (range == null) return;
+    final (minV, maxV) = param == AlarmParam.bladder ? (0.0, 100.0) : range;
+    double x(double v) {
+      final f = ((v - minV) / (maxV - minV)).clamp(0.0, 1.0);
+      return (rtl ? 1 - f : f) * size.width;
+    }
+
+    final cy = size.height / 2;
+    const h = 6.0;
+    final r = const Radius.circular(3);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, cy - h / 2, size.width, h), r),
+      Paint()..color = track,
     );
+    if (enabled) {
+      final a = x(low ?? minV);
+      final b = x(high);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(a < b ? a : b, cy - h / 2, a < b ? b : a, cy + h / 2),
+          r,
+        ),
+        Paint()..color = safe,
+      );
+    }
+    final v = value;
+    if (v != null) {
+      final cx = x(v);
+      canvas.drawCircle(Offset(cx, cy), 6.5, Paint()..color = marker);
+      canvas.drawCircle(
+        Offset(cx, cy),
+        6.5,
+        Paint()
+          ..color = track
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
   }
+
+  @override
+  bool shouldRepaint(_RangePainter old) =>
+      old.low != low ||
+      old.high != high ||
+      old.value != value ||
+      old.enabled != enabled ||
+      old.marker != marker ||
+      old.track != track ||
+      old.rtl != rtl;
 }
 
 class _LimitsDialog extends StatefulWidget {

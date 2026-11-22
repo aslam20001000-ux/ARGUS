@@ -43,7 +43,7 @@ class VitalCard extends StatelessWidget {
     this.alarm = false,
   });
 
-  static const _red = Color(0xFFE65F72);
+  static Color get _red => AppColors.red;
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +58,12 @@ class VitalCard extends StatelessWidget {
         color: alarm ? AppColors.alarmCard : AppColors.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: alarm
-              ? _red.withValues(alpha: .65)
-              : AppColors.text.withValues(alpha: .06),
+          color: alarm ? _red.withValues(alpha: .65) : AppColors.border,
           width: alarm ? 1.6 : 1,
         ),
         boxShadow: alarm
             ? [BoxShadow(color: _red.withValues(alpha: .22), blurRadius: 18)]
-            : null,
+            : AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -20,7 +20,6 @@ Color get _red => AppColors.red;
 Color get _amber => AppColors.amber;
 Color get _cyan => AppColors.cyan;
 Color get _orange => AppColors.orange;
-Color get _blue => AppColors.blue;
 
 /// Bedside-monitor style overview: patient strip, big ECG trace and one card
 /// per reading (with a short trend line and its alarm limits).
@@ -148,7 +147,7 @@ class DashboardPage extends StatelessWidget {
           showDouble(bladderValue, 0),
           '%',
           Icons.water_drop,
-          _blue,
+          AppColors.violet,
           onTap: () =>
               Navigator.push(context, appRoute<void>(const BladderPage())),
         );
@@ -218,131 +217,169 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _pill(String text, Color color, {IconData? icon}) {
-    return Container(
+  /// Patient banner (same style as the home page): name and details on the
+  /// left, alarm and device status on the right. Opens the patient profile.
+  Widget _patientStrip(BuildContext context, int activeAlarms) {
+    final alarm = activeAlarms > 0;
+    final p = patientProfile;
+    final details = [
+      p.id,
+      if (p.room.isNotEmpty) p.room,
+      if (p.age.isNotEmpty) '${p.age} y',
+      if (p.gender.isNotEmpty) p.gender,
+      if (p.bloodGroup.isNotEmpty) p.bloodGroup,
+    ].join('  •  ');
+
+    Widget pill(String text, IconData icon, Color dot) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .15),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, color: color, size: 13),
-            const SizedBox(width: 5),
-          ],
+          Icon(icon, size: 13, color: dot),
+          const SizedBox(width: 5),
           Text(
             text,
             style: TextStyle(
-              color: color,
+              color: dot,
+              fontSize: 11.5,
               fontWeight: FontWeight.w800,
-              fontSize: 10.5,
-              letterSpacing: .4,
             ),
           ),
         ],
       ),
     );
-  }
 
-  /// Patient name + details on the left, system status on the right.
-  Widget _patientStrip(BuildContext context, int activeAlarms) {
-    final alarm = activeAlarms > 0;
-    final demo = !VitalsStore.instance.usingDevice;
-    final p = patientProfile;
+    const okColor = Color(0xFF7CF0B8);
+    const badColor = Color(0xFFFFB3BF);
+
+    final statusPills = [
+      alarm
+          ? pill(
+              '$activeAlarms alarm${activeAlarms == 1 ? '' : 's'}',
+              Icons.warning_amber_rounded,
+              badColor,
+            )
+          : pill('All normal', Icons.check_circle_rounded, okColor),
+      ListenableBuilder(
+        listenable: DeviceService.instance,
+        builder: (context, _) {
+          if (!VitalsStore.instance.usingDevice) {
+            return pill(
+              'Demo data',
+              Icons.science_outlined,
+              Colors.white.withValues(alpha: .85),
+            );
+          }
+          return DeviceService.instance.connected
+              ? pill('Live device', Icons.wifi_rounded, okColor)
+              : pill('Device lost', Icons.link_off_rounded, badColor);
+        },
+      ),
+    ];
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () =>
             Navigator.push(context, appRoute<void>(const PatientProfilePage())),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         child: Ink(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.text.withValues(alpha: .06)),
+            borderRadius: BorderRadius.circular(22),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: alarm
+                  ? const [
+                      Color(0xFFB8324A),
+                      Color(0xFF8E2238),
+                      Color(0xFF5E1627),
+                    ]
+                  : AppColors.heroGradient,
+            ),
           ),
-          child: Row(
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
+            spacing: 12,
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: _blue.withValues(alpha: .15),
-                child: Icon(Icons.person, color: _blue, size: 27),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      patientName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${p.id}  •  ${p.room}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.text.withValues(alpha: .55),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${p.age} years  •  ${p.gender}  •  ${p.bloodGroup}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.text.withValues(alpha: .4),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  alarm
-                      ? _pill(
-                          '$activeAlarms ALARM${activeAlarms == 1 ? '' : 'S'}',
-                          _red,
-                          icon: Icons.warning_amber_rounded,
-                        )
-                      : _pill('ALL NORMAL', _green, icon: Icons.check_circle),
-                  if (demo) ...[
-                    const SizedBox(height: 6),
-                    _pill('DEMO DATA', _amber),
-                  ] else
-                    ListenableBuilder(
-                      listenable: DeviceService.instance,
-                      builder: (context, _) => Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: DeviceService.instance.connected
-                            ? _pill('LIVE DEVICE', _green)
-                            : _pill(
-                                'DEVICE LOST',
-                                _red,
-                                icon: Icons.link_off_rounded,
-                              ),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: .16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .35),
                       ),
                     ),
+                    child: Text(
+                      _initials(patientName),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          patientName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          details,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .72),
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+              Wrap(spacing: 8, runSpacing: 8, children: statusPills),
             ],
           ),
         ),
       ),
     );
+  }
+
+  static String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+    return (parts.first.characters.first + parts.last.characters.first)
+        .toUpperCase();
   }
 }
