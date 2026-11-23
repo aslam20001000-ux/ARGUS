@@ -1,9 +1,9 @@
 // Unit tests for the app's monitoring logic (no Firebase, no UI).
 
-import 'package:flutter_application_1/core/alarm_service.dart';
-import 'package:flutter_application_1/core/ews.dart';
-import 'package:flutter_application_1/core/settings_store.dart';
-import 'package:flutter_application_1/core/vitals_store.dart';
+import 'package:argus/core/alarm_service.dart';
+import 'package:argus/core/ews.dart';
+import 'package:argus/core/settings_store.dart';
+import 'package:argus/core/vitals_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

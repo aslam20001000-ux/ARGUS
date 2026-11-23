@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "com.example" "\0"
             VALUE "FileDescription", "ARGUS" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "flutter_application_1" "\0"
+            VALUE "InternalName", "argus" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "flutter_application_1.exe" "\0"
+            VALUE "OriginalFilename", "argus.exe" "\0"
             VALUE "ProductName", "ARGUS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
